@@ -18,5 +18,8 @@ uv.lock
 # Claude Code
 .claude/
 
+# Docs
+documents/
+
 # OS
 .DS_Store
