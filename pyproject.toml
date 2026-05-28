@@ -6,3 +6,19 @@ requires-python = ">=3.12"
 dependencies = [
     "django>=6.0.5",
 ]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.14",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+# E = 문법 에러, F = pyflakes, I = import 정렬, W = 경고
+
+[tool.ruff.format]
+quote-style = "double"
