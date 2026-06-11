@@ -6,7 +6,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
@@ -15,78 +14,99 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='Skill',
+            name="Skill",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=100)),
-                ('description', models.TextField()),
-                ('max_level', models.IntegerField(default=1)),
-                ('effect_per_level', models.FloatField()),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("name", models.CharField(max_length=100)),
+                ("description", models.TextField()),
+                ("max_level", models.IntegerField(default=1)),
+                ("effect_per_level", models.FloatField()),
             ],
             options={
-                'db_table': 'skills',
+                "db_table": "skills",
             },
         ),
         migrations.CreateModel(
-            name='Upgrade',
+            name="Upgrade",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=100)),
-                ('description', models.TextField()),
-                ('cost', models.IntegerField()),
-                ('effect', models.CharField(max_length=100)),
-                ('max_level', models.IntegerField(default=1)),
-                ('effect_per_level', models.FloatField()),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("name", models.CharField(max_length=100)),
+                ("description", models.TextField()),
+                ("cost", models.IntegerField()),
+                ("effect", models.CharField(max_length=100)),
+                ("max_level", models.IntegerField(default=1)),
+                ("effect_per_level", models.FloatField()),
             ],
             options={
-                'db_table': 'upgrades',
+                "db_table": "upgrades",
             },
         ),
         migrations.CreateModel(
-            name='Character',
+            name="Character",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('max_hp', models.IntegerField(default=100)),
-                ('dice_min', models.IntegerField(default=1)),
-                ('dice_max', models.IntegerField(default=6)),
-                ('permanent_gold', models.IntegerField(default=0)),
-                ('gold_bonus', models.IntegerField(default=0)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='character', to=settings.AUTH_USER_MODEL)),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("max_hp", models.IntegerField(default=100)),
+                ("dice_min", models.IntegerField(default=1)),
+                ("dice_max", models.IntegerField(default=6)),
+                ("permanent_gold", models.IntegerField(default=0)),
+                ("gold_bonus", models.IntegerField(default=0)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "user",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="character",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'db_table': 'characters',
+                "db_table": "characters",
             },
         ),
         migrations.CreateModel(
-            name='Enemy',
+            name="Enemy",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=100)),
-                ('hp', models.IntegerField()),
-                ('dice_min', models.IntegerField()),
-                ('dice_max', models.IntegerField()),
-                ('act', models.IntegerField()),
-                ('is_boss', models.BooleanField(default=False)),
-                ('gold_dice_min', models.IntegerField(default=1)),
-                ('gold_dice_max', models.IntegerField(default=20)),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("name", models.CharField(max_length=100)),
+                ("hp", models.IntegerField()),
+                ("dice_min", models.IntegerField()),
+                ("dice_max", models.IntegerField()),
+                ("act", models.IntegerField()),
+                ("is_boss", models.BooleanField(default=False)),
+                ("gold_dice_min", models.IntegerField(default=1)),
+                ("gold_dice_max", models.IntegerField(default=20)),
             ],
             options={
-                'db_table': 'enemies',
-                'indexes': [models.Index(fields=['act'], name='idx_enemy_act')],
+                "db_table": "enemies",
+                "indexes": [models.Index(fields=["act"], name="idx_enemy_act")],
             },
         ),
         migrations.CreateModel(
-            name='CharacterUpgrade',
+            name="CharacterUpgrade",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('level', models.IntegerField(default=1)),
-                ('character', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='upgrades', to='game.character')),
-                ('upgrade', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='character_upgrades', to='game.upgrade')),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("level", models.IntegerField(default=1)),
+                (
+                    "character",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, related_name="upgrades", to="game.character"
+                    ),
+                ),
+                (
+                    "upgrade",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="character_upgrades",
+                        to="game.upgrade",
+                    ),
+                ),
             ],
             options={
-                'db_table': 'character_upgrades',
-                'constraints': [models.UniqueConstraint(fields=('character', 'upgrade'), name='unique_character_upgrade')],
+                "db_table": "character_upgrades",
+                "constraints": [
+                    models.UniqueConstraint(fields=("character", "upgrade"), name="unique_character_upgrade")
+                ],
             },
         ),
     ]
