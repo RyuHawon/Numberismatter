@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 
-{% block title %}Number is Matter{% endblock  %}
+{% block title %}Number is Matter{% endblock %}
 
 {% block content %}
 <h1>Number is Matter</h1>
 
 {% if user.is_authenticated %}
-    <p>{{user.nickname}}님, 환영합니다.</p>
+    <p>{{ user.nickname }}님, 환영합니다.</p>
     <button>게임 시작</button>
 {% else %}
     <p>로그인하고 게임을 시작하세요.</p>
