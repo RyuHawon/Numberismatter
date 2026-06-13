@@ -2,19 +2,20 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>{% block title %}Number is Matter{% endblock%}</title>
+    <title>{% block title %}Number is Matter{% endblock %}</title>
 </head>
 <body>
     <nav>
         {% if user.is_authenticated %}
             <span>{{ user.nickname }}님</span>
-            <form method="post" action="{% url 'accounts:logout %}">
+            <form method="post" action="{% url 'accounts:logout' %}">
                 {% csrf_token %}
                 <button type="submit">로그아웃</button>
-        </form>
+            </form>
         {% else %}
             <a href="{% url 'accounts:login' %}">로그인</a>
             <a href="{% url 'accounts:signup' %}">회원가입</a>
+        {% endif %}
     </nav>
     <hr>
     {% block content %}{% endblock content %}
