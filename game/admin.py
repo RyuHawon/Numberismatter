@@ -1,6 +1,6 @@
 from django.contrib import admin
-from .models import Character, Skill, Upgrade, CharacterUpgrade, Enemy
 
+from .models import Character, CharacterUpgrade, Enemy, Skill, Upgrade
 
 admin.site.register(Character)
 admin.site.register(Skill)

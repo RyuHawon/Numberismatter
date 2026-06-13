@@ -29,8 +29,8 @@ class Skill(models.Model):
     effect_per_level = models.FloatField()
 
     class Meta:
-        db_table = 'skills'
-    
+        db_table = "skills"
+
     def __str__(self):
         return self.name
 
@@ -44,7 +44,7 @@ class Upgrade(models.Model):
     effect_per_level = models.FloatField()
 
     class Meta:
-        db_table = 'upgrades'
+        db_table = "upgrades"
 
     def __str__(self):
         return self.name
@@ -54,24 +54,24 @@ class CharacterUpgrade(models.Model):
     character = models.ForeignKey(
         Character,
         on_delete=models.CASCADE,
-        related_name='upgrades',
+        related_name="upgrades",
     )
     upgrade = models.ForeignKey(
         Upgrade,
         on_delete=models.PROTECT,
-        related_name='character_upgrades',
+        related_name="character_upgrades",
     )
     level = models.IntegerField(default=1)
 
     class Meta:
-        db_table = 'character_upgrades'
+        db_table = "character_upgrades"
         constraints = [
             models.UniqueConstraint(
-                fields=['character', 'upgrade'],
-                name='unique_character_upgrade',
+                fields=["character", "upgrade"],
+                name="unique_character_upgrade",
             )
         ]
-    
+
     def __str__(self):
         return f"{self.character} - {self.upgrade.name} Lv.{self.level}"
 
@@ -87,10 +87,10 @@ class Enemy(models.Model):
     gold_dice_max = models.IntegerField(default=20)
 
     class Meta:
-        db_table = 'enemies'
+        db_table = "enemies"
         indexes = [
-            models.Index(fields=['act'], name='idx_enemy_act'),
+            models.Index(fields=["act"], name="idx_enemy_act"),
         ]
-    
+
     def __str__(self):
         return f"[Act{self.act}] {self.name}"
