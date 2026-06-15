@@ -22,6 +22,11 @@ class UserModelTest(TestCase):
         admin = User.objects.create_superuser(email="admin@test.com", nickname="관리자", password="pw-long-1234")
         self.assertTrue(admin.is_staff)
         self.assertTrue(admin.is_superuser)
+        self.assertEqual(admin.nickname, "관리자")
+
+    def test_nickname_in_required_fields(self):
+        # createsuperuser가 nickname을 입력받아야 빈 닉네임/UNIQUE 충돌이 발생하지 않는다
+        self.assertIn("nickname", User.REQUIRED_FIELDS)
 
     def test_email_required(self):
         with self.assertRaises(ValueError):
@@ -101,7 +106,7 @@ class LoginLogoutViewTest(TestCase):
 
     def test_login_success(self):
         response = self.client.post(self.login_url, {"username": "user@test.com", "password": "pw-long-1234"})
-        self.assertRedirects(response, "/", target_status_code=404)
+        self.assertRedirects(response, "/")
         self.assertTrue(response.wsgi_request.user.is_authenticated)
 
     def test_login_wrong_password(self):
