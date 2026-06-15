@@ -8,6 +8,9 @@
     <nav>
         {% if user.is_authenticated %}
             <span>{{ user.nickname }}님</span>
+                <a href="{% url 'accounts:profile_edit' %}">회원정보 수정</a>
+                <a href="{% url 'accounts:password_change' %}">비밀번호 변경</a>
+                <a href="{% url 'accounts:account_delete' %}">회원 탈퇴</a>
             <form method="post" action="{% url 'accounts:logout' %}">
                 {% csrf_token %}
                 <button type="submit">로그아웃</button>

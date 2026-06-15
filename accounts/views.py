@@ -1,5 +1,8 @@
+from django.contrib.auth import logout
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
+from django.views import View
 from django.views.generic import CreateView, UpdateView
 
 from .forms import ProfileEditForm, SignUpForm
@@ -18,3 +21,15 @@ class ProfileEditView(LoginRequiredMixin, UpdateView):
 
     def get_object(self):
         return self.request.user
+
+
+class AccountDeleteView(LoginRequiredMixin, View):
+    def get(self, request):
+        return render(request, "accounts/account_delete.html")
+
+    def post(self, request):
+        user = request.user
+        user.is_active = False
+        user.save()
+        logout(request)
+        return redirect("game:home")
