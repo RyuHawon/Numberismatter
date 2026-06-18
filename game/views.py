@@ -10,6 +10,8 @@ def home(request):
 @login_required
 @require_POST
 def start_run(request):
+    if "run" in request.session:
+        return redirect("game:home")
     character = request.user.character
     request.session["run"] = {
         "phase": "roll",
@@ -19,4 +21,11 @@ def start_run(request):
         "pending_gold": 0,
         "skills": {},
     }
+    return redirect("game:home")
+
+
+@login_required
+@require_POST
+def abandon_run(request):
+    request.session.pop("run", None)
     return redirect("game:home")
