@@ -7,7 +7,18 @@
 
 {% if user.is_authenticated %}
     <p>{{ user.nickname }}님, 환영합니다.</p>
-    <button>게임 시작</button>
+    {% if request.session.run %}
+        <p>런 진행 중 - Act {{ request.session.run.current_act }}, HP {{ request.session.run.hp }}</p>
+        <form method="post" action="{% url 'game:abandon_run' %}">
+            {% csrf_token %}
+            <button type="submit">포기하기</button>
+        </form>
+    {% else %}
+        <form method="post" action="{% url 'game:start_run' %}">
+            {% csrf_token %}
+            <button type="submit">게임 시작</button>
+        </form>
+    {% endif %}
 {% else %}
     <p>로그인하고 게임을 시작하세요.</p>
     <a href="{% url 'accounts:login' %}">로그인</a>
