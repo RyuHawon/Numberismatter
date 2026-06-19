@@ -117,3 +117,18 @@ def battle_action(request):
     run.pop("my_roll", None)
     request.session.modified = True
     return redirect("game:battle")
+
+
+@login_required
+@require_POST
+def battle_next(request):
+    run = request.seesion.get("run")
+    if not run or run.get("phase") != "won":
+        return redirect("game:battle")
+    run["current_stage"] += 1
+    run.pop("enemy", None)
+    run.pop("last_result", None)
+    run.pop("gold_gained", None)
+    run["phase"] = "roll"
+    request.session.modified = True
+    return redirect("game:battle")

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}전투{% endblock title %}
+{% block title %}{% endblock title %}
 
 {% block content %}
 <h1>전투 - Act {{ run.current_act }} Stage {{ run.current_stage }}</h1>
@@ -8,7 +8,7 @@
 <h2>{{ run.enemy.name }}{% if run.enemy.is_boss %} (보스){% endif %}</h2>
 <p>적 HP: {{ run.enemy.hp }} / {{ run.enemy.max_hp }}</p>
 <hr>
-<p>내 HP: {{ run.hp }}</p>
+<p>내 HP: {{ run.hp }} | 임시 골드: {{ run.pending_gold }}</p>
 
 {% if run.last_result %}
     <p>지난 턴 [{% if run.last_result.mode == "attack" %}공격{% else %}수비{% endif %}] — 내 주사위 {{ run.last_result.my_roll }}{% if run.last_result.enemy_roll %} / 적 주사위 {{ run.last_result.enemy_roll }}, 받은 피해 {{ run.last_result.damage_taken }}{% endif %}</p>
@@ -19,6 +19,7 @@
         {% csrf_token %}
         <button type="submit">주사위 굴리기</button>
     </form>
+    <a href="{% url 'game:home' %}">홈으로 (이어하기 가능)</a>
 {% elif run.phase == "action" %}
     <p>내 주사위: {{ run.my_roll }}</p>
     <form method="post" action="{% url 'game:battle_action' %}">
@@ -28,11 +29,24 @@
     </form>
 {% elif run.phase == "won" %}
     <h2>승리!</h2>
-    <a href="{% url 'game:home' %}">홈으로</a>
+    <p>골드 +{{ run.gold_gained }}</p>
+    <form method="post" action="{% url 'game:battle_next' %}">
+        {% csrf_token %}
+        <button type="submit">다음</button>
+    </form>
+{% elif run.phase == "act_clear" %}
+    <h2>Act 클리어!</h2>
+    <p>골드 +{{ run.gold_gained }} (임시 골드 {{ run.pending_gold }})</p>
+    <form method="post" action="{% url 'game:abandon_run' %}">
+        {% csrf_token %}
+        <button type="submit">홈으로</button>
+    </form>
 {% elif run.phase == "dead" %}
     <h2>패배...</h2>
-    <a href="{% url 'game:home' %}">홈으로</a>
+    <p>런이 종료되었습니다.</p>
+    <form method="post" action="{% url 'game:abandon_run' %}">
+        {% csrf_token %}
+        <button type="submit">홈으로</button>
+    </form>
 {% endif %}
-
-<a href="{% url 'game:home' %}">홈으로</a>
 {% endblock content %}
