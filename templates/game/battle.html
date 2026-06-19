@@ -7,9 +7,32 @@
 
 <h2>{{ run.enemy.name }}{% if run.enemy.is_boss %} (보스){% endif %}</h2>
 <p>적 HP: {{ run.enemy.hp }} / {{ run.enemy.max_hp }}</p>
-
 <hr>
 <p>내 HP: {{ run.hp }}</p>
+
+{% if run.last_result %}
+    <p>지난 턴 [{{ run.last_result.mode }}] — 내 주사위 {{ run.last_result.my_roll }}{% if run.last_result.enemy_roll %} / 적 주사위 {{ run.last_result.enemy_roll }}, 받은 피해 {{ run.last_result.damage_taken }}{% endif %}</p>
+{% endif %}
+
+{% if run.phase == "roll" %}
+    <form method="post" action="{% url 'game:battle_roll' %}">
+        {% csrf_token %}
+        <button type="submit">주사위 굴리기</button>
+    </form>
+{% elif run.phase == "action" %}
+    <p>내 주사위: {{ run.my_roll }}</p>
+    <form method="post" action="{% url 'game:battle_action' %}">
+        {% csrf_token %}
+        <button type="submit" name="mode" value="attack">공격</button>
+        <button type="submit" name="mode" value="defend">수비</button>
+    </form>
+{% elif run.phase == "won" %}
+    <h2>승리!</h2>
+    <a href="{% url 'game:home' %}">홈으로</a>
+{% elif run.phase == "dead" %}
+    <h2>패배...</h2>
+    <a href="{% url 'game:home' %}">홈으로</a>
+{% endif %}
 
 <a href="{% url 'game:home' %}">홈으로</a>
 {% endblock content %}

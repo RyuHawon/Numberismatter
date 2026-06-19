@@ -55,3 +55,59 @@ def battle(request):
         request.session.modified = True
 
     return render(request, "game/battle.html", {"run": run})
+
+
+@login_required
+@require_POST
+def battle_roll(request):
+    run = request.session.get("run")
+    if not run or run.get("phase") != "roll" or "enemy" not in run:
+        return redirect("game:battle")
+    character = request.user.character
+    run["my_roll"] = random.randint(character.dice_min, character.dice_max)
+    run["phase"] = "action"
+    request.session.modified = True
+    return redirect("game:battle")
+
+
+@login_required
+@require_POST
+def battle_action(request):
+    run = request.session.get("run")
+    if not run or run.get("phase") != "action":
+        return redirect("game:battle")
+    mode = request.POST.get("mode")
+    if mode not in ("attack", "defend"):
+        return redirect("game:battle")
+
+    enemy = run["enemy"]
+    my_roll = run["my_roll"]
+    enemy_roll = None
+    damage_taken = 0
+
+    if mode == "attack":
+        enemy["hp"] = max(enemy["hp"] - my_roll, 0)
+        if enemy["hp"] > 0:
+            enemy_roll = random.randint(enemy["dice_min"], enemy["dice_max"])
+            damage_taken = enemy_roll
+            run["hp"] = max(run["hp"] - enemy_roll, 0)
+    else:
+        enemy_roll = random.randint(enemy["dice_min"], enemy["dice_max"])
+
+    run["last_result"] = {
+        "mode": mode,
+        "my_roll": my_roll,
+        "enemy_roll": enemy_roll,
+        "damage_taken": damage_taken,
+    }
+
+    if enemy["hp"] <= 0:
+        run["phase"] = "won"
+    elif run["hp"] <= 0:
+        run["phase"] = "dead"
+    else:
+        run["phase"] = "roll"
+
+    run.pop("my_roll", None)
+    request.session.modified = True
+    return redirect("game:battle")
