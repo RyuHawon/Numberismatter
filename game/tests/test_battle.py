@@ -46,3 +46,99 @@ class BattleViewTest(TestCase):
         self.client.get(self.battle_url)
         second = self.client.session["run"]["enemy"]["name"]
         self.assertEqual(first, second)
+
+
+class BattleTurnTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(email="user@test.com", nickname="유저", password="pw-long-1234")
+        self.battle_url = reverse("game:battle")
+        self.start_url = reverse("game:start_run")
+        self.roll_url = reverse("game:battle_roll")
+        self.action_url = reverse("game:battle_action")
+
+    def _setup_battle(self, phase="action", my_roll=3, enemy_hp=20, enemy_dice=(2, 2), my_hp=100):
+        # 무작위 주사위에 의존하지 않도록 세션에 통제된 전투 상태를 직접 세팅한다
+        self.client.force_login(self.user)
+        session = self.client.session
+        session["run"] = {
+            "phase": phase,
+            "current_act": 1,
+            "current_stage": 1,
+            "hp": my_hp,
+            "pending_gold": 0,
+            "skills": {},
+            "enemy": {
+                "name": "테스트적",
+                "hp": enemy_hp,
+                "max_hp": enemy_hp,
+                "dice_min": enemy_dice[0],
+                "dice_max": enemy_dice[1],
+                "is_boss": False,
+            },
+            "my_roll": my_roll,
+        }
+        session.save()
+
+    def test_roll_transitions_to_action(self):
+        # 주사위 굴리기는 phase를 action으로 바꾸고 캐릭터 주사위 범위 내 값을 저장한다
+        self.client.force_login(self.user)
+        self.client.post(self.start_url)
+        self.client.get(self.battle_url)
+        self.client.post(self.roll_url)
+        run = self.client.session["run"]
+        self.assertEqual(run["phase"], "action")
+        character = self.user.character
+        self.assertGreaterEqual(run["my_roll"], character.dice_min)
+        self.assertLessEqual(run["my_roll"], character.dice_max)
+
+    def test_attack_damages_enemy_and_takes_retaliation(self):
+        self._setup_battle(my_roll=3, enemy_hp=20, enemy_dice=(2, 2), my_hp=100)
+        self.client.post(self.action_url, {"mode": "attack"})
+        run = self.client.session["run"]
+        self.assertEqual(run["enemy"]["hp"], 17)  # 20 - 3
+        self.assertEqual(run["hp"], 98)  # 100 - 2 (적 반격)
+        self.assertEqual(run["phase"], "roll")
+
+    def test_attack_kills_enemy_without_retaliation(self):
+        # 적이 죽으면 반격하지 않는다
+        self._setup_battle(my_roll=5, enemy_hp=5, enemy_dice=(6, 6), my_hp=100)
+        self.client.post(self.action_url, {"mode": "attack"})
+        run = self.client.session["run"]
+        self.assertEqual(run["enemy"]["hp"], 0)
+        self.assertEqual(run["hp"], 100)  # 반격 없음
+        self.assertEqual(run["phase"], "won")
+
+    def test_defend_blocks_all_damage(self):
+        # 수비는 적이 굴려도 피해를 전부 막는다
+        self._setup_battle(my_roll=3, enemy_hp=20, enemy_dice=(6, 6), my_hp=100)
+        self.client.post(self.action_url, {"mode": "defend"})
+        run = self.client.session["run"]
+        self.assertEqual(run["hp"], 100)  # 피해 없음
+        self.assertEqual(run["enemy"]["hp"], 20)  # 적도 그대로
+        self.assertEqual(run["last_result"]["damage_taken"], 0)
+        self.assertIsNotNone(run["last_result"]["enemy_roll"])  # 적은 굴림
+        self.assertEqual(run["phase"], "roll")
+
+    def test_player_death(self):
+        # HP가 0 이하가 되면 phase가 dead가 된다
+        self._setup_battle(my_roll=1, enemy_hp=50, enemy_dice=(6, 6), my_hp=1)
+        self.client.post(self.action_url, {"mode": "attack"})
+        run = self.client.session["run"]
+        self.assertEqual(run["hp"], 0)
+        self.assertEqual(run["phase"], "dead")
+
+    def test_action_ignored_in_roll_phase(self):
+        # roll 단계에서 공격 요청이 와도 무시된다 (중복 요청 방어)
+        self._setup_battle(phase="roll", enemy_hp=20)
+        self.client.post(self.action_url, {"mode": "attack"})
+        run = self.client.session["run"]
+        self.assertEqual(run["enemy"]["hp"], 20)
+        self.assertEqual(run["phase"], "roll")
+
+    def test_roll_ignored_in_action_phase(self):
+        # action 단계에서 주사위 굴리기 요청이 와도 무시된다
+        self._setup_battle(phase="action", my_roll=3)
+        self.client.post(self.roll_url)
+        run = self.client.session["run"]
+        self.assertEqual(run["my_roll"], 3)
+        self.assertEqual(run["phase"], "action")
