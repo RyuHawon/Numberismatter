@@ -51,6 +51,8 @@ def battle(request):
             "dice_min": enemy.dice_min,
             "dice_max": enemy.dice_max,
             "is_boss": enemy.is_boss,
+            "gold_dice_min": enemy.gold_dice_min,
+            "gold_dice_max": enemy.gold_dice_max,
         }
         request.session.modified = True
 
@@ -102,7 +104,11 @@ def battle_action(request):
     }
 
     if enemy["hp"] <= 0:
-        run["phase"] = "won"
+        character = request.user.character
+        gold = random.randint(enemy["gold_dice_min"], enemy["gold_dice_max"]) + character.gold_bonus
+        run["pending_gold"] += gold
+        run["gold_gained"] = gold
+        run["phase"] = "act_clear" if enemy["is_boss"] else "won"
     elif run["hp"] <= 0:
         run["phase"] = "dead"
     else:
