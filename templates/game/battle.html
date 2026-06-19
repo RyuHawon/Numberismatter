@@ -11,7 +11,7 @@
 <p>내 HP: {{ run.hp }}</p>
 
 {% if run.last_result %}
-    <p>지난 턴 [{{ run.last_result.mode }}] — 내 주사위 {{ run.last_result.my_roll }}{% if run.last_result.enemy_roll %} / 적 주사위 {{ run.last_result.enemy_roll }}, 받은 피해 {{ run.last_result.damage_taken }}{% endif %}</p>
+    <p>지난 턴 [{% if run.last_result.mode == "attack" %}공격{% else %}수비{% endif %}] — 내 주사위 {{ run.last_result.my_roll }}{% if run.last_result.enemy_roll %} / 적 주사위 {{ run.last_result.enemy_roll }}, 받은 피해 {{ run.last_result.damage_taken }}{% endif %}</p>
 {% endif %}
 
 {% if run.phase == "roll" %}
