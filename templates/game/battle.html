@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}전투{% endblock title %}
+
+{% block content %}
+<h1>전투 - Act {{ run.current_act }} Stage {{ run.current_stage }}</h1>
+
+<h2>{{ run.enemy.name }}{% if run.enemy.is_boss %} (보스){% endif %}</h2>
+<p>적 HP: {{ run.enemy.hp }} / {{ run.enemy.max_hp }}</p>
+
+<hr>
+<p>내 HP: {{ run.hp }}</p>
+
+<a href="{% url 'game:home' %}">홈으로</a>
+{% endblock content %}

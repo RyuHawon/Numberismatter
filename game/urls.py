@@ -8,4 +8,5 @@ urlpatterns = [
     path("", views.home, name="home"),
     path("run/start/", views.start_run, name="start_run"),
     path("run/abandon/", views.abandon_run, name="abandon_run"),
+    path("battle/", views.battle, name="battle"),
 ]
