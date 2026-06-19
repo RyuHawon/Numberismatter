@@ -82,6 +82,7 @@ class Enemy(models.Model):
     dice_min = models.IntegerField()
     dice_max = models.IntegerField()
     act = models.IntegerField()
+    stage = models.IntegerField()
     is_boss = models.BooleanField(default=False)
     gold_dice_min = models.IntegerField(default=1)
     gold_dice_max = models.IntegerField(default=20)
