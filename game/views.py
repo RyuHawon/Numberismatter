@@ -122,7 +122,7 @@ def battle_action(request):
 @login_required
 @require_POST
 def battle_next(request):
-    run = request.seesion.get("run")
+    run = request.session.get("run")
     if not run or run.get("phase") != "won":
         return redirect("game:battle")
     run["current_stage"] += 1
