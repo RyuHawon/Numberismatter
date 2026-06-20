@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
@@ -67,6 +69,7 @@ class BattleTurnTest(TestCase):
         gold_dice=(5, 5),
         current_stage=1,
         pending_gold=0,
+        skills=None,
     ):
         # 무작위 주사위에 의존하지 않도록 세션에 통제된 전투 상태를 직접 세팅한다
         self.client.force_login(self.user)
@@ -77,7 +80,7 @@ class BattleTurnTest(TestCase):
             "current_stage": current_stage,
             "hp": my_hp,
             "pending_gold": pending_gold,
-            "skills": {},
+            "skills": skills if skills is not None else {},
             "enemy": {
                 "name": "테스트적",
                 "hp": enemy_hp,
@@ -171,18 +174,73 @@ class BattleTurnTest(TestCase):
         self.client.post(self.action_url, {"mode": "attack"})
         self.assertEqual(self.client.session["run"]["phase"], "act_clear")
 
-    def test_battle_next_advances_stage(self):
-        # 다음으로 진행하면 스테이지가 오르고 적/턴결과가 초기화된다
+    def test_won_screen_shows_skill_options(self):
+        # 승리 화면에 스킬 선택지가 렌더링된다
+        self._setup_battle(phase="won")
+        self.client.session["run"]  # phase won 상태
+        response = self.client.get(self.battle_url)
+        self.assertContains(response, "크리티컬")
+        self.assertContains(response, "건너뛰기")
+
+    def test_choose_skill_levels_up_and_advances(self):
+        # 스킬을 고르면 레벨이 오르고 다음 스테이지로 진행한다
         self._setup_battle(phase="won", current_stage=1)
-        next_url = reverse("game:battle_next")
-        self.client.post(next_url)
+        self.client.post(reverse("game:choose_skill"), {"skill": "critical"})
         run = self.client.session["run"]
+        self.assertEqual(run["skills"]["critical"], 1)
         self.assertEqual(run["current_stage"], 2)
         self.assertNotIn("enemy", run)
         self.assertEqual(run["phase"], "roll")
 
-    def test_battle_next_ignored_when_not_won(self):
-        # won 상태가 아니면 다음 진행 요청은 무시된다
+    def test_skip_advances_without_skill(self):
+        # 건너뛰기는 스킬 없이 다음 스테이지로 진행한다
+        self._setup_battle(phase="won", current_stage=1)
+        self.client.post(reverse("game:choose_skill"), {"skill": "skip"})
+        run = self.client.session["run"]
+        self.assertEqual(run["skills"], {})
+        self.assertEqual(run["current_stage"], 2)
+        self.assertEqual(run["phase"], "roll")
+
+    def test_choose_skill_respects_max_level(self):
+        # 만렙 스킬은 더 이상 레벨업되지 않는다
+        self._setup_battle(phase="won")
+        session = self.client.session
+        session["run"]["skills"] = {"critical": 3}  # max_level
+        session.save()
+        self.client.post(reverse("game:choose_skill"), {"skill": "critical"})
+        self.assertEqual(self.client.session["run"]["skills"]["critical"], 3)
+
+    def test_choose_skill_ignored_when_not_won(self):
+        # won 상태가 아니면 스킬 선택/진행 요청은 무시된다
         self._setup_battle(phase="roll", current_stage=1)
-        self.client.post(reverse("game:battle_next"))
+        self.client.post(reverse("game:choose_skill"), {"skill": "critical"})
         self.assertEqual(self.client.session["run"]["current_stage"], 1)
+
+    def test_critical_doubles_damage(self):
+        # 크리티컬 발동 시 데미지가 2배가 된다 (난수를 0으로 고정해 무조건 발동)
+        self._setup_battle(my_roll=5, enemy_hp=100, skills={"critical": 2})
+        with patch("game.views.random.random", return_value=0.0):
+            self.client.post(self.action_url, {"mode": "attack"})
+        run = self.client.session["run"]
+        self.assertTrue(run["last_result"]["is_crit"])
+        self.assertEqual(run["last_result"]["damage_dealt"], 10)  # 5 * 2
+        self.assertEqual(run["enemy"]["hp"], 90)  # 100 - 10
+
+    def test_no_critical_when_roll_misses(self):
+        # 난수가 확률보다 크면 크리티컬이 발동하지 않는다
+        self._setup_battle(my_roll=5, enemy_hp=100, skills={"critical": 2})
+        with patch("game.views.random.random", return_value=0.99):
+            self.client.post(self.action_url, {"mode": "attack"})
+        run = self.client.session["run"]
+        self.assertFalse(run["last_result"]["is_crit"])
+        self.assertEqual(run["last_result"]["damage_dealt"], 5)
+        self.assertEqual(run["enemy"]["hp"], 95)
+
+    def test_no_critical_without_skill(self):
+        # 크리티컬 스킬이 없으면 난수와 무관하게 발동하지 않는다
+        self._setup_battle(my_roll=5, enemy_hp=100, skills={})
+        with patch("game.views.random.random", return_value=0.0):
+            self.client.post(self.action_url, {"mode": "attack"})
+        run = self.client.session["run"]
+        self.assertFalse(run["last_result"]["is_crit"])
+        self.assertEqual(run["last_result"]["damage_dealt"], 5)

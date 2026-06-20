@@ -23,6 +23,7 @@ class Character(models.Model):
 
 
 class Skill(models.Model):
+    code = models.CharField(max_length=50, unique=True)
     name = models.CharField(max_length=100)
     description = models.TextField()
     max_level = models.IntegerField(default=1)

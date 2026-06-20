@@ -9,9 +9,10 @@
 <p>적 HP: {{ run.enemy.hp }} / {{ run.enemy.max_hp }}</p>
 <hr>
 <p>내 HP: {{ run.hp }} | 임시 골드: {{ run.pending_gold }}</p>
+{% if run.skills.critical %}<p>보유 스킬: 크리티컬 Lv.{{ run.skills.critical }}</p>{% endif %}
 
 {% if run.last_result %}
-    <p>지난 턴 [{% if run.last_result.mode == "attack" %}공격{% else %}수비{% endif %}] — 내 주사위 {{ run.last_result.my_roll }}{% if run.last_result.enemy_roll %} / 적 주사위 {{ run.last_result.enemy_roll }}, 받은 피해 {{ run.last_result.damage_taken }}{% endif %}</p>
+    <p>지난 턴 [{% if run.last_result.mode == "attack" %}공격{% else %}수비{% endif %}] — 내 주사위 {{ run.last_result.my_roll }}{% if run.last_result.mode == "attack" %} → 데미지 {{ run.last_result.damage_dealt }}{% if run.last_result.is_crit %} (크리티컬!){% endif %}{% endif %}{% if run.last_result.enemy_roll %} / 적 주사위 {{ run.last_result.enemy_roll }}, 받은 피해 {{ run.last_result.damage_taken }}{% endif %}</p>
 {% endif %}
 
 {% if run.phase == "roll" %}
@@ -30,9 +31,13 @@
 {% elif run.phase == "won" %}
     <h2>승리!</h2>
     <p>골드 +{{ run.gold_gained }}</p>
-    <form method="post" action="{% url 'game:battle_next' %}">
+    <h3>스킬 획득</h3>
+    <form method="post" action="{% url 'game:choose_skill' %}">
         {% csrf_token %}
-        <button type="submit">다음</button>
+        {% for opt in skill_options %}
+            <button type="submit" name="skill" value="{{ opt.code }}">{{ opt.name }} Lv.{{ opt.current_level }} → {{ opt.next_level }}</button>
+        {% endfor %}
+        <button type="submit" name="skill" value="skip">건너뛰기</button>
     </form>
 {% elif run.phase == "act_clear" %}
     <h2>Act 클리어!</h2>

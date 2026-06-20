@@ -11,5 +11,5 @@ urlpatterns = [
     path("battle/", views.battle, name="battle"),
     path("battle/roll/", views.battle_roll, name="battle_roll"),
     path("battle/action/", views.battle_action, name="battle_action"),
-    path("battle/next/", views.battle_next, name="battle_next"),
+    path("battle/skill/", views.choose_skill, name="choose_skill"),
 ]
