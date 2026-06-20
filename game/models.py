@@ -8,7 +8,7 @@ class Character(models.Model):
         on_delete=models.CASCADE,
         related_name="character",
     )
-    max_hp = models.IntegerField(default=100)
+    max_hp = models.IntegerField(default=50)
     dice_min = models.IntegerField(default=1)
     dice_max = models.IntegerField(default=6)
     permanent_gold = models.IntegerField(default=0)
@@ -79,6 +79,7 @@ class CharacterUpgrade(models.Model):
 
 class Enemy(models.Model):
     name = models.CharField(max_length=100)
+    image = models.CharField(max_length=100, blank=True, default="")
     hp = models.IntegerField()
     dice_min = models.IntegerField()
     dice_max = models.IntegerField()
