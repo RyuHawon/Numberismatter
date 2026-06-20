@@ -9,9 +9,10 @@
 <p>적 HP: {{ run.enemy.hp }} / {{ run.enemy.max_hp }}</p>
 <hr>
 <p>내 HP: {{ run.hp }} | 임시 골드: {{ run.pending_gold }}</p>
+{% if run.skills.critical %}<p>보유 스킬: 크리티컬 Lv.{{ run.skills.critical }}</p>{% endif %}
 
 {% if run.last_result %}
-    <p>지난 턴 [{% if run.last_result.mode == "attack" %}공격{% else %}수비{% endif %}] — 내 주사위 {{ run.last_result.my_roll }}{% if run.last_result.enemy_roll %} / 적 주사위 {{ run.last_result.enemy_roll }}, 받은 피해 {{ run.last_result.damage_taken }}{% endif %}</p>
+    <p>지난 턴 [{% if run.last_result.mode == "attack" %}공격{% else %}수비{% endif %}] — 내 주사위 {{ run.last_result.my_roll }}{% if run.last_result.mode == "attack" %} → 데미지 {{ run.last_result.damage_dealt }}{% if run.last_result.is_crit %} (크리티컬!){% endif %}{% endif %}{% if run.last_result.enemy_roll %} / 적 주사위 {{ run.last_result.enemy_roll }}, 받은 피해 {{ run.last_result.damage_taken }}{% endif %}</p>
 {% endif %}
 
 {% if run.phase == "roll" %}

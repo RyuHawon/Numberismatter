@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
@@ -67,6 +69,7 @@ class BattleTurnTest(TestCase):
         gold_dice=(5, 5),
         current_stage=1,
         pending_gold=0,
+        skills=None,
     ):
         # 무작위 주사위에 의존하지 않도록 세션에 통제된 전투 상태를 직접 세팅한다
         self.client.force_login(self.user)
@@ -77,7 +80,7 @@ class BattleTurnTest(TestCase):
             "current_stage": current_stage,
             "hp": my_hp,
             "pending_gold": pending_gold,
-            "skills": {},
+            "skills": skills if skills is not None else {},
             "enemy": {
                 "name": "테스트적",
                 "hp": enemy_hp,
@@ -212,3 +215,32 @@ class BattleTurnTest(TestCase):
         self._setup_battle(phase="roll", current_stage=1)
         self.client.post(reverse("game:choose_skill"), {"skill": "critical"})
         self.assertEqual(self.client.session["run"]["current_stage"], 1)
+
+    def test_critical_doubles_damage(self):
+        # 크리티컬 발동 시 데미지가 2배가 된다 (난수를 0으로 고정해 무조건 발동)
+        self._setup_battle(my_roll=5, enemy_hp=100, skills={"critical": 2})
+        with patch("game.views.random.random", return_value=0.0):
+            self.client.post(self.action_url, {"mode": "attack"})
+        run = self.client.session["run"]
+        self.assertTrue(run["last_result"]["is_crit"])
+        self.assertEqual(run["last_result"]["damage_dealt"], 10)  # 5 * 2
+        self.assertEqual(run["enemy"]["hp"], 90)  # 100 - 10
+
+    def test_no_critical_when_roll_misses(self):
+        # 난수가 확률보다 크면 크리티컬이 발동하지 않는다
+        self._setup_battle(my_roll=5, enemy_hp=100, skills={"critical": 2})
+        with patch("game.views.random.random", return_value=0.99):
+            self.client.post(self.action_url, {"mode": "attack"})
+        run = self.client.session["run"]
+        self.assertFalse(run["last_result"]["is_crit"])
+        self.assertEqual(run["last_result"]["damage_dealt"], 5)
+        self.assertEqual(run["enemy"]["hp"], 95)
+
+    def test_no_critical_without_skill(self):
+        # 크리티컬 스킬이 없으면 난수와 무관하게 발동하지 않는다
+        self._setup_battle(my_roll=5, enemy_hp=100, skills={})
+        with patch("game.views.random.random", return_value=0.0):
+            self.client.post(self.action_url, {"mode": "attack"})
+        run = self.client.session["run"]
+        self.assertFalse(run["last_result"]["is_crit"])
+        self.assertEqual(run["last_result"]["damage_dealt"], 5)

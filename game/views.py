@@ -100,9 +100,19 @@ def battle_action(request):
     my_roll = run["my_roll"]
     enemy_roll = None
     damage_taken = 0
+    damage_dealt = 0
+    is_crit = False
 
     if mode == "attack":
-        enemy["hp"] = max(enemy["hp"] - my_roll, 0)
+        damage_dealt = my_roll
+        crit_level = run["skills"].get("critical", 0)
+        if crit_level > 0:
+            crit_skill = Skill.objects.filter(code="critical").first()
+            if crit_skill and random.random() < crit_level * crit_skill.effect_per_level:
+                damage_dealt = my_roll * 2
+                is_crit = True
+        enemy["hp"] = max(enemy["hp"] - damage_dealt, 0)
+
         if enemy["hp"] > 0:
             enemy_roll = random.randint(enemy["dice_min"], enemy["dice_max"])
             damage_taken = enemy_roll
@@ -113,6 +123,8 @@ def battle_action(request):
     run["last_result"] = {
         "mode": mode,
         "my_roll": my_roll,
+        "damage_dealt": damage_dealt,
+        "is_crit": is_crit,
         "enemy_roll": enemy_roll,
         "damage_taken": damage_taken,
     }
