@@ -30,9 +30,13 @@
 {% elif run.phase == "won" %}
     <h2>승리!</h2>
     <p>골드 +{{ run.gold_gained }}</p>
-    <form method="post" action="{% url 'game:battle_next' %}">
+    <h3>스킬 획득</h3>
+    <form method="post" action="{% url 'game:choose_skill' %}">
         {% csrf_token %}
-        <button type="submit">다음</button>
+        {% for opt in skill_options %}
+            <button type="submit" name="skill" value="{{ opt.code }}">{{ opt.name }} Lv.{{ opt.current_level }} → {{ opt.next_level }}</button>
+        {% endfor %}
+        <button type="submit" name="skill" value="skip">건너뛰기</button>
     </form>
 {% elif run.phase == "act_clear" %}
     <h2>Act 클리어!</h2>

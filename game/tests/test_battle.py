@@ -171,18 +171,44 @@ class BattleTurnTest(TestCase):
         self.client.post(self.action_url, {"mode": "attack"})
         self.assertEqual(self.client.session["run"]["phase"], "act_clear")
 
-    def test_battle_next_advances_stage(self):
-        # 다음으로 진행하면 스테이지가 오르고 적/턴결과가 초기화된다
+    def test_won_screen_shows_skill_options(self):
+        # 승리 화면에 스킬 선택지가 렌더링된다
+        self._setup_battle(phase="won")
+        self.client.session["run"]  # phase won 상태
+        response = self.client.get(self.battle_url)
+        self.assertContains(response, "크리티컬")
+        self.assertContains(response, "건너뛰기")
+
+    def test_choose_skill_levels_up_and_advances(self):
+        # 스킬을 고르면 레벨이 오르고 다음 스테이지로 진행한다
         self._setup_battle(phase="won", current_stage=1)
-        next_url = reverse("game:battle_next")
-        self.client.post(next_url)
+        self.client.post(reverse("game:choose_skill"), {"skill": "critical"})
         run = self.client.session["run"]
+        self.assertEqual(run["skills"]["critical"], 1)
         self.assertEqual(run["current_stage"], 2)
         self.assertNotIn("enemy", run)
         self.assertEqual(run["phase"], "roll")
 
-    def test_battle_next_ignored_when_not_won(self):
-        # won 상태가 아니면 다음 진행 요청은 무시된다
+    def test_skip_advances_without_skill(self):
+        # 건너뛰기는 스킬 없이 다음 스테이지로 진행한다
+        self._setup_battle(phase="won", current_stage=1)
+        self.client.post(reverse("game:choose_skill"), {"skill": "skip"})
+        run = self.client.session["run"]
+        self.assertEqual(run["skills"], {})
+        self.assertEqual(run["current_stage"], 2)
+        self.assertEqual(run["phase"], "roll")
+
+    def test_choose_skill_respects_max_level(self):
+        # 만렙 스킬은 더 이상 레벨업되지 않는다
+        self._setup_battle(phase="won")
+        session = self.client.session
+        session["run"]["skills"] = {"critical": 3}  # max_level
+        session.save()
+        self.client.post(reverse("game:choose_skill"), {"skill": "critical"})
+        self.assertEqual(self.client.session["run"]["skills"]["critical"], 3)
+
+    def test_choose_skill_ignored_when_not_won(self):
+        # won 상태가 아니면 스킬 선택/진행 요청은 무시된다
         self._setup_battle(phase="roll", current_stage=1)
-        self.client.post(reverse("game:battle_next"))
+        self.client.post(reverse("game:choose_skill"), {"skill": "critical"})
         self.assertEqual(self.client.session["run"]["current_stage"], 1)

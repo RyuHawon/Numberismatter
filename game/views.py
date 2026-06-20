@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_POST
 
-from .models import Enemy
+from .models import Enemy, Skill
 
 
 def home(request):
@@ -56,7 +56,21 @@ def battle(request):
         }
         request.session.modified = True
 
-    return render(request, "game/battle.html", {"run": run})
+    context = {"run": run}
+    if run.get("phase") == "won":
+        options = []
+        for skill in Skill.objects.all():
+            level = run["skills"].get(skill.code, 0)
+            if level < skill.max_level:
+                options.append({
+                    "code": skill.code,
+                    "name": skill.name,
+                    "current_level": level,
+                    "next_level": level + 1,
+                })
+        context["skill_options"] = options
+
+    return render(request, "game/battle.html", context)
 
 
 @login_required
@@ -121,10 +135,19 @@ def battle_action(request):
 
 @login_required
 @require_POST
-def battle_next(request):
+def choose_skill(request):
     run = request.session.get("run")
     if not run or run.get("phase") != "won":
         return redirect("game:battle")
+    
+    code = request.POST.get("skill")
+    if code and code != "skip":
+        skill = Skill.objects.filter(code=code).first()
+        if skill:
+            current = run["skills"].get(code, 0)
+            if current < skill.max_level:
+                run["skills"][code] = current + 1
+
     run["current_stage"] += 1
     run.pop("enemy", None)
     run.pop("last_result", None)
