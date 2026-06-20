@@ -124,16 +124,31 @@ class BattleTurnTest(TestCase):
         self.assertEqual(run["hp"], 100)  # 반격 없음
         self.assertEqual(run["phase"], "won")
 
-    def test_defend_blocks_all_damage(self):
-        # 수비는 적이 굴려도 피해를 전부 막는다
-        self._setup_battle(my_roll=3, enemy_hp=20, enemy_dice=(6, 6), my_hp=100)
+    def test_defend_blocks_within_roll(self):
+        # 내 눈금 이상으로 막으면 피해 0, 초과 방어량은 누적 없이 사라진다 (방어6 vs 공격1)
+        self._setup_battle(my_roll=6, enemy_dice=(1, 1), enemy_hp=20, my_hp=50)
         self.client.post(self.action_url, {"mode": "defend"})
         run = self.client.session["run"]
-        self.assertEqual(run["hp"], 100)  # 피해 없음
-        self.assertEqual(run["enemy"]["hp"], 20)  # 적도 그대로
         self.assertEqual(run["last_result"]["damage_taken"], 0)
-        self.assertIsNotNone(run["last_result"]["enemy_roll"])  # 적은 굴림
+        self.assertEqual(run["hp"], 50)  # 피해 없음
+        self.assertEqual(run["enemy"]["hp"], 20)  # 수비는 적 HP를 깎지 않음
         self.assertEqual(run["phase"], "roll")
+
+    def test_defend_partial_block(self):
+        # 내 눈금보다 큰 공격은 차액만큼 관통한다 (방어4 vs 공격5 -> 1 피해)
+        self._setup_battle(my_roll=4, enemy_dice=(5, 5), my_hp=50)
+        self.client.post(self.action_url, {"mode": "defend"})
+        run = self.client.session["run"]
+        self.assertEqual(run["last_result"]["damage_taken"], 1)
+        self.assertEqual(run["hp"], 49)
+
+    def test_defend_weak_takes_more(self):
+        # 낮은 눈금으로 방어하면 차액만큼 크게 맞는다 (방어1 vs 공격6 -> 5 피해)
+        self._setup_battle(my_roll=1, enemy_dice=(6, 6), my_hp=50)
+        self.client.post(self.action_url, {"mode": "defend"})
+        run = self.client.session["run"]
+        self.assertEqual(run["last_result"]["damage_taken"], 5)
+        self.assertEqual(run["hp"], 45)
 
     def test_player_death(self):
         # HP가 0 이하가 되면 phase가 dead가 된다

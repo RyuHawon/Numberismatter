@@ -53,6 +53,7 @@ def battle(request):
             "is_boss": enemy.is_boss,
             "gold_dice_min": enemy.gold_dice_min,
             "gold_dice_max": enemy.gold_dice_max,
+            "image": enemy.image,
         }
         request.session.modified = True
 
@@ -117,8 +118,10 @@ def battle_action(request):
             enemy_roll = random.randint(enemy["dice_min"], enemy["dice_max"])
             damage_taken = enemy_roll
             run["hp"] = max(run["hp"] - enemy_roll, 0)
-    else:
+    else:  # defend: 내 주사위 눈금만큼만 방어, 초과 방어량은 누적 없이 사라짐
         enemy_roll = random.randint(enemy["dice_min"], enemy["dice_max"])
+        damage_taken = max(enemy_roll - my_roll, 0)
+        run["hp"] = max(run["hp"] - damage_taken, 0)
 
     run["last_result"] = {
         "mode": mode,

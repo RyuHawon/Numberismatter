@@ -16,7 +16,7 @@ class CharacterSignalTest(TestCase):
         # 명세서 기본값으로 캐릭터가 생성되어야 한다
         user = User.objects.create_user(email="user@test.com", nickname="유저", password="pw-long-1234")
         character = user.character
-        self.assertEqual(character.max_hp, 100)
+        self.assertEqual(character.max_hp, 50)
         self.assertEqual(character.dice_min, 1)
         self.assertEqual(character.dice_max, 6)
         self.assertEqual(character.permanent_gold, 0)
