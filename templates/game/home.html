@@ -3,26 +3,58 @@
 {% block title %}Number is Matter{% endblock %}
 
 {% block content %}
-<h1>Number is Matter</h1>
+<h1 class="home-title">Number is <span class="accent">Matter</span></h1>
+<p class="home-sub">주사위로 싸우는 로그라이크</p>
 
 {% if user.is_authenticated %}
-    <p>{{ user.nickname }}님, 환영합니다.</p>
+
+    <div class="card">
+        <p style="font-size:0.8rem; color:var(--text-dim); margin-bottom:12px; text-transform:uppercase; letter-spacing:0.05em;">캐릭터</p>
+        <div class="stat-grid">
+            <div class="stat-item">
+                <div class="s-label">최대 HP</div>
+                <div class="s-value" style="color:var(--hp-good)">{{ user.character.max_hp }}</div>
+            </div>
+            <div class="stat-item">
+                <div class="s-label">주사위</div>
+                <div class="s-value">{{ user.character.dice_min }}–{{ user.character.dice_max }}</div>
+            </div>
+        </div>
+    </div>
+
     {% if request.session.run %}
-    <p>런 진행 중 - Act {{ request.session.run.current_act }}, HP {{ request.session.run.hp }}</p>
-    <a href="{% url 'game:battle' %}">이어하기</a>
-    <form method="post" action="{% url 'game:abandon_run' %}">
-        {% csrf_token %}
-        <button type="submit">포기하기</button>
-    </form>
+        <div class="card">
+            <p style="font-size:0.8rem; color:var(--text-dim); margin-bottom:10px; text-transform:uppercase; letter-spacing:0.05em;">런 진행 중</p>
+            <p style="font-size:1.1rem; font-weight:700; margin-bottom:4px;">
+                Act {{ request.session.run.current_act }} / Stage {{ request.session.run.current_stage }}
+            </p>
+            <p style="color:var(--hp-good); font-size:0.9rem;">HP {{ request.session.run.hp }}</p>
+            <div class="btn-row" style="margin-top:18px;">
+                <a href="{% url 'game:battle' %}" class="btn btn-primary" style="text-align:center;">이어하기 →</a>
+                <form method="post" action="{% url 'game:abandon_run' %}" style="flex:1; display:flex;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger" style="width:100%;">런 포기</button>
+                </form>
+            </div>
+        </div>
     {% else %}
-        <form method="post" action="{% url 'game:start_run' %}">
-            {% csrf_token %}
-            <button type="submit">게임 시작</button>
-        </form>
+        <div style="text-align:center; margin-top:28px;">
+            <form method="post" action="{% url 'game:start_run' %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary" style="font-size:1.15rem; padding:14px 48px;">
+                    🎲 게임 시작
+                </button>
+            </form>
+        </div>
     {% endif %}
+
 {% else %}
-    <p>로그인하고 게임을 시작하세요.</p>
-    <a href="{% url 'accounts:login' %}">로그인</a>
-    <a href="{% url 'accounts:signup' %}">회원가입</a>
+    <div class="card" style="text-align:center; padding:40px 20px;">
+        <p style="color:var(--text-dim); margin-bottom:24px;">로그인하고 게임을 시작하세요.</p>
+        <div class="btn-row" style="justify-content:center;">
+            <a href="{% url 'accounts:login' %}" class="btn btn-primary">로그인</a>
+            <a href="{% url 'accounts:signup' %}" class="btn btn-primary">회원가입</a>
+        </div>
+    </div>
 {% endif %}
 {% endblock %}

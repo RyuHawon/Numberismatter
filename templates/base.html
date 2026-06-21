@@ -2,25 +2,319 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Number is Matter</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #0f1117;
+            --surface: #1a1d2e;
+            --surface-2: #252840;
+            --surface-3: #0d1b3e;
+            --accent: #e94560;
+            --gold: #f4c430;
+            --text: #e2e2ec;
+            --text-dim: #888aa0;
+            --hp-good: #22c55e;
+            --hp-warn: #eab308;
+            --hp-danger: #ef4444;
+            --boss: #a855f7;
+            --border: rgba(255, 255, 255, 0.07);
+            --radius: 14px;
+            --radius-sm: 8px;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.5;
+        }
+
+        /* ── Nav ── */
+        nav {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+        .nav-logo {
+            font-weight: 900;
+            font-size: 1.1rem;
+            color: var(--gold);
+            text-decoration: none;
+            letter-spacing: -0.5px;
+            margin-right: auto;
+        }
+        nav a:not(.nav-logo) {
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 0.875rem;
+        }
+        nav a:not(.nav-logo):hover { color: var(--text); }
+        nav form { margin: 0; }
+        nav .nav-btn {
+            background: none;
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            padding: 4px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-family: inherit;
+        }
+        nav .nav-btn:hover { border-color: var(--accent); color: var(--accent); }
+        nav .nav-user { color: var(--gold); font-weight: 600; font-size: 0.9rem; }
+
+        /* ── Layout ── */
+        .container {
+            max-width: 680px;
+            margin: 0 auto;
+            padding: 28px 16px 48px;
+        }
+
+        /* ── Card ── */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-bottom: 14px;
+        }
+
+        /* ── HP Bar ── */
+        .hp-label {
+            font-size: 0.82rem;
+            color: var(--text-dim);
+            margin-bottom: 5px;
+        }
+        .hp-bar-track {
+            background: rgba(255, 255, 255, 0.07);
+            border-radius: 99px;
+            height: 11px;
+            overflow: hidden;
+        }
+        .hp-bar {
+            height: 100%;
+            border-radius: 99px;
+            transition: width 0.35s ease;
+        }
+        .hp-bar.good  { background: var(--hp-good); box-shadow: 0 0 6px rgba(34,197,94,0.4); }
+        .hp-bar.warn  { background: var(--hp-warn); box-shadow: 0 0 6px rgba(234,179,8,0.4); }
+        .hp-bar.danger { background: var(--hp-danger); box-shadow: 0 0 6px rgba(239,68,68,0.4); }
+
+        /* ── Buttons ── */
+        .btn {
+            display: inline-block;
+            padding: 10px 22px;
+            border-radius: var(--radius-sm);
+            border: none;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            font-family: inherit;
+            transition: filter 0.15s, transform 0.1s;
+            line-height: 1.4;
+        }
+        .btn:hover:not(:disabled) { filter: brightness(1.15); transform: translateY(-1px); }
+        .btn:active:not(:disabled) { transform: translateY(0); }
+        .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+        .btn-primary { background: var(--surface-2); color: var(--text); border: 1px solid rgba(255,255,255,0.1); }
+        .btn-attack  { background: #be2323; color: #fff; }
+        .btn-defend  { background: #1a4f8a; color: #fff; }
+        .btn-gold    { background: #4a3800; color: var(--gold); border: 1px solid var(--gold); }
+        .btn-danger  { background: #7a1a1a; color: #ff9090; border: 1px solid #aa2a2a; }
+        .btn-skip    { background: none; border: 1px solid var(--border); color: var(--text-dim); }
+        .btn-skill {
+            background: var(--surface-2);
+            color: var(--text);
+            border: 1px solid var(--border);
+            width: 100%;
+            text-align: left;
+            margin: 5px 0;
+            padding: 12px 16px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .btn-skill:hover:not(:disabled) { border-color: var(--gold); background: #2a2d45; }
+
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .btn-row .btn { flex: 1; min-width: 110px; text-align: center; }
+
+        /* ── Stage Progress ── */
+        .stage-progress {
+            display: flex;
+            align-items: center;
+        }
+        .stage-dot {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.05);
+            border: 2px solid rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: var(--text-dim);
+            flex-shrink: 0;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .stage-dot.done    { background: var(--surface-3); border-color: #1e5090; color: #6090d0; }
+        .stage-dot.current { background: var(--accent); border-color: var(--accent); color: #fff; box-shadow: 0 0 8px rgba(233,69,96,0.5); }
+        .stage-dot.boss-dot { border-radius: 6px; font-size: 1rem; }
+        .stage-dot.boss-dot.current { background: var(--boss); border-color: var(--boss); box-shadow: 0 0 8px rgba(168,85,247,0.5); }
+        .stage-dot.boss-dot.done    { background: #3d1a5a; border-color: var(--boss); color: var(--boss); }
+        .stage-line {
+            flex: 1;
+            height: 2px;
+            background: rgba(255,255,255,0.07);
+            min-width: 16px;
+        }
+        .stage-line.done { background: #1e5090; }
+
+        /* ── Dice ── */
+        .dice-display {
+            font-size: 3.5rem;
+            text-align: center;
+            padding: 18px 0 12px;
+            color: var(--gold);
+            text-shadow: 0 0 20px rgba(244,196,48,0.5);
+        }
+
+        /* ── Enemy ── */
+        .enemy-image {
+            display: block;
+            margin: 0 auto 14px;
+            max-height: 110px;
+            image-rendering: pixelated;
+        }
+        .enemy-name { font-size: 1.25rem; font-weight: 700; }
+        .boss-badge {
+            background: var(--boss);
+            color: #fff;
+            font-size: 0.68rem;
+            font-weight: 800;
+            letter-spacing: 0.05em;
+            padding: 2px 7px;
+            border-radius: 4px;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+
+        /* ── Battle Log ── */
+        .battle-log {
+            background: rgba(0,0,0,0.25);
+            border-left: 3px solid var(--surface-2);
+            border-radius: 0 6px 6px 0;
+            padding: 10px 14px;
+            font-size: 0.88rem;
+            color: var(--text-dim);
+            margin-bottom: 14px;
+            line-height: 1.7;
+        }
+        .log-crit    { color: var(--gold); font-weight: 800; }
+        .log-dealt   { color: #fb923c; font-weight: 700; }
+        .log-taken   { color: var(--hp-danger); font-weight: 700; }
+        .log-blocked { color: var(--hp-good); font-weight: 700; }
+
+        /* ── Skill Badge ── */
+        .skill-badge {
+            display: inline-block;
+            background: var(--surface-2);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 4px;
+            padding: 1px 7px;
+            font-size: 0.78rem;
+            color: var(--text-dim);
+        }
+
+        /* ── Battle Header ── */
+        .battle-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+        .act-label     { font-size: 1rem; font-weight: 700; }
+        .act-label sub { font-size: 0.75rem; font-weight: 400; color: var(--text-dim); }
+
+        /* ── Result Titles ── */
+        .result-title { font-size: 2rem; font-weight: 800; text-align: center; margin: 8px 0 14px; letter-spacing: -0.5px; }
+        .result-victory   { color: var(--gold); text-shadow: 0 0 20px rgba(244,196,48,0.4); }
+        .result-act-clear { color: var(--boss); text-shadow: 0 0 20px rgba(168,85,247,0.4); }
+        .result-defeat    { color: var(--hp-danger); }
+
+        /* ── Gold ── */
+        .gold-text { color: var(--gold); font-weight: 700; }
+
+        /* ── Home ── */
+        .home-title {
+            font-size: 2.6rem;
+            font-weight: 900;
+            text-align: center;
+            margin: 36px 0 6px;
+            letter-spacing: -1.5px;
+        }
+        .home-title .accent { color: var(--accent); }
+        .home-sub {
+            text-align: center;
+            color: var(--text-dim);
+            margin-bottom: 32px;
+            font-size: 0.9rem;
+        }
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 14px 0;
+        }
+        .stat-item {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 12px;
+            text-align: center;
+        }
+        .stat-item .s-label { font-size: 0.78rem; color: var(--text-dim); }
+        .stat-item .s-value { font-size: 1.5rem; font-weight: 700; margin-top: 2px; }
+    </style>
 </head>
 <body>
     <nav>
+        <a href="/" class="nav-logo">NiM</a>
         {% if user.is_authenticated %}
-            <span>{{ user.nickname }}님</span>
-                <a href="{% url 'accounts:profile_edit' %}">회원정보 수정</a>
-                <a href="{% url 'accounts:password_change' %}">비밀번호 변경</a>
-                <a href="{% url 'accounts:account_delete' %}">회원 탈퇴</a>
+            <span class="nav-user">{{ user.nickname }}</span>
+            <a href="{% url 'accounts:profile_edit' %}">회원정보</a>
+            <a href="{% url 'accounts:password_change' %}">비밀번호</a>
+            <a href="{% url 'accounts:account_delete' %}">탈퇴</a>
             <form method="post" action="{% url 'accounts:logout' %}">
                 {% csrf_token %}
-                <button type="submit">로그아웃</button>
+                <button type="submit" class="nav-btn">로그아웃</button>
             </form>
         {% else %}
             <a href="{% url 'accounts:login' %}">로그인</a>
             <a href="{% url 'accounts:signup' %}">회원가입</a>
         {% endif %}
     </nav>
-    <hr>
-    {% block content %}{% endblock content %}
+    <div class="container">
+        {% block content %}{% endblock content %}
+    </div>
 </body>
 </html>

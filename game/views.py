@@ -22,10 +22,11 @@ def start_run(request):
         "current_act": 1,
         "current_stage": 1,
         "hp": character.max_hp,
+        "max_hp": character.max_hp,
         "pending_gold": 0,
         "skills": {},
     }
-    return redirect("game:home")
+    return redirect("game:battle")
 
 
 @login_required
