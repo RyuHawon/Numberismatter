@@ -182,32 +182,33 @@
 </div>
 
 {% elif run.phase == "act_clear" %}
-{# ── Act 클리어 ── #}
+{# ── Act 클리어 / 전체 클리어 ── #}
 <div class="card" style="text-align:center; padding:32px 20px;">
-    <p class="result-title result-act-clear">Act {{ run.current_act }} 클리어!</p>
+    {% if has_next_act %}
+        <p class="result-title result-act-clear">Act {{ run.current_act }} 클리어!</p>
+    {% else %}
+        <p class="result-title result-act-clear">전체 클리어! 🎉</p>
+    {% endif %}
+
     <p class="gold-text" style="font-size:1.1rem; margin-bottom:6px;">
         🪙 누적 골드 {{ run.pending_gold }} G
     </p>
     <p style="color:var(--text-dim); font-size:0.85rem; margin-bottom:26px;">
-        귀환하거나 다음 Act에 도전하세요.
+        {% if has_next_act %}귀환하면 골드를 영구 보관합니다. 도전 시 HP를 회복하고 다음 Act로 진행합니다.{% else %}귀환하여 모든 골드를 영구 보관하세요.{% endif %}
     </p>
 
-    <div class="btn-row" style="justify-content:center; margin-bottom:10px;">
-        <button class="btn btn-gold" disabled title="미구현 — 추후 추가 예정">
-            🏠 귀환하기
-        </button>
-        <button class="btn btn-attack" disabled title="미구현 — 추후 추가 예정">
-            ▶ Act {{ run.current_act|add:1 }} 도전
-        </button>
+    <div class="btn-row" style="justify-content:center;">
+        <form method="post" action="{% url 'game:return_run' %}" style="flex:1; display:flex;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-gold" style="width:100%;">🏠 귀환하기</button>
+        </form>
+        {% if has_next_act %}
+        <form method="post" action="{% url 'game:challenge_next_act' %}" style="flex:1; display:flex;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-attack" style="width:100%;">▶ Act {{ run.current_act|add:1 }} 도전</button>
+        </form>
+        {% endif %}
     </div>
-
-    <form method="post" action="{% url 'game:abandon_run' %}">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-skip"
-                style="font-size:0.82rem; padding:8px 20px; margin-top:6px;">
-            런 포기하고 홈으로
-        </button>
-    </form>
 </div>
 
 {% elif run.phase == "dead" %}
