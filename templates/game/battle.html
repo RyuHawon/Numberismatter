@@ -1,8 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Act {{ run.current_act }} · Stage {{ run.current_stage }} — NiM{% endblock %}
-
 {% block content %}
 
 {# ── Act / Stage 헤더 ── #}
@@ -102,9 +100,7 @@
     </div>
 </div>
 
-{# ══════════════════════════════════════
-   액션 패널 — 페이즈별 분기
-══════════════════════════════════════ #}
+{# ───── 액션 패널 — 페이즈별 분기 ───── #}
 
 {% if run.phase == "roll" %}
 {# ── 주사위 굴리기 ── #}
