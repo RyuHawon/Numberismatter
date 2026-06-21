@@ -10,6 +10,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "coverage>=7.14.2",
     "ruff>=0.15.14",
 ]
 
@@ -24,3 +25,19 @@ select = ["E", "F", "I", "W"]
 
 [tool.ruff.format]
 quote-style = "double"
+
+[tool.coverage.run]
+source = ["accounts", "game", "numberismatter"]
+omit = [
+    "*/migrations/*",
+    "*/tests/*",
+    "*/tests.py",
+    "manage.py",
+    "*/settings.py",
+    "*/wsgi.py",
+    "*/asgi.py",
+    "*/__init__.py",
+]
+
+[tool.coverage.report]
+show_missing = true
