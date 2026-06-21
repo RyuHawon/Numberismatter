@@ -23,3 +23,6 @@ documents/
 
 # OS
 .DS_Store
+
+# Django collectstatic 결과물
+/staticfiles/
