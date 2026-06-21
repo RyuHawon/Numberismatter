@@ -1,14 +1,11 @@
 services:
   db:
     image: postgres:16
-    environment:
-      POSTGRES_DB: numberismatter
-      POSTGRES_USER: gameuser
-      POSTGRES_PASSWORD: gamepassword
+    env_file: .env
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U gameuser -d numberismatter"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -17,12 +14,8 @@ services:
     build: .
     command: uv run gunicorn numberismatter.wsgi:application --bind 0.0.0.0:8000
     ports:
-      - "8000:8000"
-    environment:
-      SECRET_KEY: local-compose-test-key-not-secret
-      DEBUG: "False"
-      ALLOWED_HOSTS: localhost,127.0.0.1
-      DATABASE_URL: postgres://gameuser:gamepassword@db:5432/numberismatter
+      - "80:8000"
+    env_file: .env
     depends_on:
       db:
         condition: service_healthy
