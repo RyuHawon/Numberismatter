@@ -49,6 +49,21 @@
         </div>
     </div>
 
+<p style="font-size:0.8rem; color:var(--text-dim); margin-top:10px;">
+    🛡 방어구 {{ run.enemy.armor }}
+</p>
+
+{% if run.enemy.intent %}
+<div class="battle-log" style="margin-top:12px;">
+    <strong>다음 행동</strong><br>
+    {% if run.enemy.intent.type == "attack" %}
+        ⚔ 공격 — {{ run.enemy.intent.damage }} 피해 × {{ run.enemy.intent.hits }}회
+    {% else %}
+        🛡 방어 — 방어구 +{{ run.enemy.intent.armor_gain }}
+    {% endif %}
+</div>
+{% endif %}
+
     <p style="font-size:0.8rem; color:var(--text-dim); margin-top:10px;">
         주사위 {{ run.enemy.dice_min }}–{{ run.enemy.dice_max }}
     </p>

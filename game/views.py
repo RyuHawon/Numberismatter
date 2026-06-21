@@ -6,6 +6,8 @@ from django.views.decorators.http import require_POST
 
 from .models import Enemy, Skill
 
+DEFEND_CHANCE = 0.3
+DIE_KINDS = ("attack", "defend", "heal")
 
 def home(request):
     return render(request, "game/home.html")
