@@ -39,14 +39,33 @@ class BattleViewTest(TestCase):
         self.assertIn(enemy["name"], candidate_names)
         self.assertEqual(enemy["hp"], enemy["max_hp"])
 
-    def test_enemy_persists_on_revisit(self):
-        # 전투 화면에 다시 들어와도 같은 적이 유지된다 (세션 저장)
+    def test_spawned_enemy_starts_with_armor_and_intent(self):
+        # 새 적은 방어구 0으로 시작하며, 표시할 다음 행동을 하나 가진다
         self.client.force_login(self.user)
         self.client.post(self.start_url)
         self.client.get(self.battle_url)
-        first = self.client.session["run"]["enemy"]["name"]
+
+        enemy = self.client.session["run"]["enemy"]
+
+        self.assertEqual(enemy["armor"], 0)
+        self.assertIn(enemy["intent"]["type"], ("attack", "defend"))
+
+        if enemy["intent"]["type"] == "attack":
+            self.assertEqual(enemy["intent"]["hits"], 1)
+            self.assertGreaterEqual(enemy["intent"]["damage"], enemy["dice_min"])
+            self.assertLessEqual(enemy["intent"]["damage"], enemy["dice_max"])
+        else:
+            self.assertGreaterEqual(enemy["intent"]["armor_gain"], enemy["dice_min"])
+            self.assertLessEqual(enemy["intent"]["armor_gain"], enemy["dice_max"])
+
+    def test_enemy_persists_on_revisit(self):
+        # 전투 화면에 다시 들어와도 적과 미리 정한 인텐트가 유지된다 (세션 저장)
+        self.client.force_login(self.user)
+        self.client.post(self.start_url)
         self.client.get(self.battle_url)
-        second = self.client.session["run"]["enemy"]["name"]
+        first = self.client.session["run"]["enemy"]
+        self.client.get(self.battle_url)
+        second = self.client.session["run"]["enemy"]
         self.assertEqual(first, second)
 
 

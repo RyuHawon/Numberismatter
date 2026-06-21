@@ -36,6 +36,22 @@ def abandon_run(request):
     return redirect("game:home")
 
 
+def create_enemy_intent(enemy):
+    intent_type = random.choice(("attack", "defend"))
+
+    if intent_type == "attack":
+        return {
+            "type": "attack",
+            "damage": random.randint(enemy["dice_min"], enemy["dice_max"]),
+            "hits": 1,
+        }
+
+    return {
+        "type": "defend",
+        "armor_gain": random.randint(enemy["dice_min"], enemy["dice_max"]),
+    }
+
+
 @login_required
 def battle(request):
     run = request.session.get("run")
@@ -55,7 +71,9 @@ def battle(request):
             "gold_dice_min": enemy.gold_dice_min,
             "gold_dice_max": enemy.gold_dice_max,
             "image": enemy.image,
+            "armor": 0,
         }
+        run["enemy"]["intent"] = create_enemy_intent(run["enemy"])
         request.session.modified = True
 
     context = {"run": run}
