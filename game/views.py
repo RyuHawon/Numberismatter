@@ -22,10 +22,11 @@ def start_run(request):
         "current_act": 1,
         "current_stage": 1,
         "hp": character.max_hp,
+        "max_hp": character.max_hp,
         "pending_gold": 0,
         "skills": {},
     }
-    return redirect("game:home")
+    return redirect("game:battle")
 
 
 @login_required
@@ -58,17 +59,21 @@ def battle(request):
         request.session.modified = True
 
     context = {"run": run}
+    if run.get("phase") == "act_clear":
+        context["has_next_act"] = Enemy.objects.filter(act=run["current_act"] + 1).exists()
     if run.get("phase") == "won":
         options = []
         for skill in Skill.objects.all():
             level = run["skills"].get(skill.code, 0)
             if level < skill.max_level:
-                options.append({
-                    "code": skill.code,
-                    "name": skill.name,
-                    "current_level": level,
-                    "next_level": level + 1,
-                })
+                options.append(
+                    {
+                        "code": skill.code,
+                        "name": skill.name,
+                        "current_level": level,
+                        "next_level": level + 1,
+                    }
+                )
         context["skill_options"] = options
 
     return render(request, "game/battle.html", context)
@@ -154,7 +159,7 @@ def choose_skill(request):
     run = request.session.get("run")
     if not run or run.get("phase") != "won":
         return redirect("game:battle")
-    
+
     code = request.POST.get("skill")
     if code and code != "skip":
         skill = Skill.objects.filter(code=code).first()
@@ -164,6 +169,39 @@ def choose_skill(request):
                 run["skills"][code] = current + 1
 
     run["current_stage"] += 1
+    run.pop("enemy", None)
+    run.pop("last_result", None)
+    run.pop("gold_gained", None)
+    run["phase"] = "roll"
+    request.session.modified = True
+    return redirect("game:battle")
+
+
+@login_required
+@require_POST
+def return_run(request):
+    run = request.session.get("run")
+    if not run or run.get("phase") != "act_clear":
+        return redirect("game:battle")
+    character = request.user.character
+    character.permanent_gold += run["pending_gold"]
+    character.save()
+    request.session.pop("run", None)
+    return redirect("game:home")
+
+
+@login_required
+@require_POST
+def challenge_next_act(request):
+    run = request.session.get("run")
+    if not run or run.get("phase") != "act_clear":
+        return redirect("game:battle")
+    next_act = run["current_act"] + 1
+    if not Enemy.objects.filter(act=next_act).exists():
+        return redirect("game:battle")
+    run["current_act"] = next_act
+    run["current_stage"] = 1
+    run["hp"] = run["max_hp"]
     run.pop("enemy", None)
     run.pop("last_result", None)
     run.pop("gold_gained", None)

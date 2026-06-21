@@ -259,3 +259,105 @@ class BattleTurnTest(TestCase):
         run = self.client.session["run"]
         self.assertFalse(run["last_result"]["is_crit"])
         self.assertEqual(run["last_result"]["damage_dealt"], 5)
+
+
+class ActProgressionTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(email="user@test.com", nickname="유저", password="pw-long-1234")
+        self.return_url = reverse("game:return_run")
+        self.challenge_url = reverse("game:challenge_next_act")
+        self.battle_url = reverse("game:battle")
+
+    def _set_act_clear(self, act=1, pending_gold=0, max_hp=50):
+        # 전투를 거치지 않고 Act 클리어 상태를 직접 세팅한다
+        self.client.force_login(self.user)
+        session = self.client.session
+        session["run"] = {
+            "phase": "act_clear",
+            "current_act": act,
+            "current_stage": 4,
+            "hp": 5,
+            "max_hp": max_hp,
+            "pending_gold": pending_gold,
+            "skills": {},
+        }
+        session.save()
+
+    def _set_phase(self, phase, **extra):
+        self.client.force_login(self.user)
+        session = self.client.session
+        run = {
+            "phase": phase,
+            "current_act": 1,
+            "current_stage": 1,
+            "hp": 50,
+            "max_hp": 50,
+            "pending_gold": 0,
+            "skills": {},
+        }
+        run.update(extra)
+        session["run"] = run
+        session.save()
+
+    def test_return_banks_gold_and_ends_run(self):
+        # 귀환은 임시 골드를 캐릭터 영구 골드로 적립하고 런을 종료한다
+        self._set_act_clear(pending_gold=100)
+        self.client.post(self.return_url)
+        self.user.character.refresh_from_db()
+        self.assertEqual(self.user.character.permanent_gold, 100)
+        self.assertNotIn("run", self.client.session)
+
+    def test_return_accumulates_gold(self):
+        # 여러 번 귀환하면 영구 골드가 누적된다
+        self.user.character.permanent_gold = 50
+        self.user.character.save()
+        self._set_act_clear(pending_gold=30)
+        self.client.post(self.return_url)
+        self.user.character.refresh_from_db()
+        self.assertEqual(self.user.character.permanent_gold, 80)
+
+    def test_return_ignored_when_not_act_clear(self):
+        # act_clear 상태가 아니면 귀환이 무시된다 (골드 적립/런 종료 없음)
+        self._set_phase("roll", pending_gold=99)
+        self.client.post(self.return_url)
+        self.user.character.refresh_from_db()
+        self.assertEqual(self.user.character.permanent_gold, 0)
+        self.assertIn("run", self.client.session)
+
+    def test_challenge_advances_act_and_heals(self):
+        # 도전은 다음 Act로 넘어가고 HP를 완전 회복한다
+        self._set_act_clear(act=1, max_hp=50)
+        self.client.post(self.challenge_url)
+        run = self.client.session["run"]
+        self.assertEqual(run["current_act"], 2)
+        self.assertEqual(run["current_stage"], 1)
+        self.assertEqual(run["hp"], 50)
+        self.assertNotIn("enemy", run)
+        self.assertEqual(run["phase"], "roll")
+
+    def test_challenge_blocked_on_final_act(self):
+        # 마지막 Act에서는 다음 Act가 없어 도전이 막힌다
+        self._set_act_clear(act=3)
+        self.client.post(self.challenge_url)
+        run = self.client.session["run"]
+        self.assertEqual(run["current_act"], 3)
+        self.assertEqual(run["phase"], "act_clear")
+
+    def test_challenge_ignored_when_not_act_clear(self):
+        self._set_phase("roll")
+        self.client.post(self.challenge_url)
+        self.assertEqual(self.client.session["run"]["current_act"], 1)
+
+    def test_act_clear_screen_shows_challenge(self):
+        # 다음 Act가 있으면 도전 버튼이 보인다
+        self._set_act_clear(act=1)
+        response = self.client.get(self.battle_url)
+        self.assertContains(response, "도전")
+        self.assertNotContains(response, "전체 클리어")
+
+    def test_final_act_clear_screen_shows_total_clear(self):
+        # 마지막 Act 클리어 시 전체 클리어 화면이 뜨고 도전 버튼이 없다
+        self._set_act_clear(act=3)
+        response = self.client.get(self.battle_url)
+        self.assertContains(response, "전체 클리어")
+        self.assertNotContains(response, "도전")

@@ -1,59 +1,231 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}{% endblock title %}
+{% block title %}Act {{ run.current_act }} · Stage {{ run.current_stage }} — NiM{% endblock %}
 
 {% block content %}
-<h1>전투 - Act {{ run.current_act }} Stage {{ run.current_stage }}</h1>
 
-<h2>{{ run.enemy.name }}{% if run.enemy.is_boss %} (보스){% endif %}</h2>
-{% if run.enemy.image %}<img src="{% static run.enemy.image %}" alt="{{ run.enemy.name }}" width="200">{% endif %}
-<p>적 HP: {{ run.enemy.hp }} / {{ run.enemy.max_hp }}</p>
-<hr>
-<p>내 HP: {{ run.hp }} | 임시 골드: {{ run.pending_gold }}</p>
-{% if run.skills.critical %}<p>보유 스킬: 크리티컬 Lv.{{ run.skills.critical }}</p>{% endif %}
+{# ── Act / Stage 헤더 ── #}
+<div class="battle-header">
+    <div>
+        <p class="act-label">
+            Act {{ run.current_act }}
+            <sub>/ 3</sub>
+        </p>
+        <p style="font-size:0.78rem; color:var(--text-dim); margin-top:2px;">
+            Stage {{ run.current_stage }} / 4
+        </p>
+    </div>
 
-{% if run.last_result %}
-    <p>지난 턴 [{% if run.last_result.mode == "attack" %}공격{% else %}수비{% endif %}] — 내 주사위 {{ run.last_result.my_roll }}{% if run.last_result.mode == "attack" %} → 데미지 {{ run.last_result.damage_dealt }}{% if run.last_result.is_crit %} (크리티컬!){% endif %}{% endif %}{% if run.last_result.enemy_roll %} / 적 주사위 {{ run.last_result.enemy_roll }}, 받은 피해 {{ run.last_result.damage_taken }}{% endif %}</p>
+    <div class="stage-progress">
+        {% with s=run.current_stage %}
+        <span class="stage-dot {% if s > 1 %}done{% elif s == 1 %}current{% endif %}">1</span>
+        <span class="stage-line {% if s > 1 %}done{% endif %}"></span>
+        <span class="stage-dot {% if s > 2 %}done{% elif s == 2 %}current{% endif %}">2</span>
+        <span class="stage-line {% if s > 2 %}done{% endif %}"></span>
+        <span class="stage-dot {% if s > 3 %}done{% elif s == 3 %}current{% endif %}">3</span>
+        <span class="stage-line {% if s > 3 %}done{% endif %}"></span>
+        <span class="stage-dot boss-dot {% if s > 4 %}done{% elif s == 4 %}current{% endif %}">☠</span>
+        {% endwith %}
+    </div>
+</div>
+
+{# ── 적 패널 ── #}
+{% if run.enemy %}
+<div class="card" style="text-align:center;">
+    {% if run.enemy.image %}
+    <img src="{% static run.enemy.image %}" alt="{{ run.enemy.name }}" class="enemy-image">
+    {% endif %}
+
+    <p style="margin-bottom:14px;">
+        <span class="enemy-name">{{ run.enemy.name }}</span>
+        {% if run.enemy.is_boss %}<span class="boss-badge">BOSS</span>{% endif %}
+    </p>
+
+    {% widthratio run.enemy.hp run.enemy.max_hp 100 as enemy_hp_pct %}
+    <div style="text-align:left;">
+        <div class="hp-label">HP {{ run.enemy.hp }} / {{ run.enemy.max_hp }}</div>
+        <div class="hp-bar-track">
+            <div class="hp-bar {% if enemy_hp_pct|add:0 >= 50 %}good{% elif enemy_hp_pct|add:0 >= 25 %}warn{% else %}danger{% endif %}"
+                 style="width:{{ enemy_hp_pct }}%"></div>
+        </div>
+    </div>
+
+    <p style="font-size:0.8rem; color:var(--text-dim); margin-top:10px;">
+        주사위 {{ run.enemy.dice_min }}–{{ run.enemy.dice_max }}
+    </p>
+</div>
 {% endif %}
 
+{# ── 지난 턴 결과 ── #}
+{% if run.last_result %}
+<div class="battle-log">
+    {% if run.last_result.mode == "attack" %}
+        ⚔ <strong>공격</strong> — 내 주사위 <strong>{{ run.last_result.my_roll }}</strong>
+        → 피해 <span class="log-dealt">{{ run.last_result.damage_dealt }}</span>
+        {% if run.last_result.is_crit %}<span class="log-crit"> ★ CRITICAL!</span>{% endif %}
+        {% if run.last_result.enemy_roll %}
+        <br>
+        적 반격 주사위 <strong>{{ run.last_result.enemy_roll }}</strong>
+        → 받은 피해 <span class="log-taken">{{ run.last_result.damage_taken }}</span>
+        {% endif %}
+    {% else %}
+        🛡 <strong>수비</strong> — 내 주사위 <strong>{{ run.last_result.my_roll }}</strong>
+        / 적 주사위 <strong>{{ run.last_result.enemy_roll }}</strong>
+        → 받은 피해 <span class="log-taken">{{ run.last_result.damage_taken }}</span>
+        {% if run.last_result.damage_taken == 0 %}
+        <span class="log-blocked"> (완전 방어!)</span>
+        {% endif %}
+    {% endif %}
+</div>
+{% endif %}
+
+{# ── 플레이어 상태 ── #}
+<div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <span style="font-weight:700; font-size:0.95rem;">내 상태</span>
+        <span class="gold-text" style="font-size:0.9rem;">🪙 {{ run.pending_gold }} G</span>
+    </div>
+
+    {% widthratio run.hp run.max_hp 100 as hp_pct %}
+    <div class="hp-label">HP {{ run.hp }} / {{ run.max_hp }}</div>
+    <div class="hp-bar-track" style="margin-bottom:10px;">
+        <div class="hp-bar {% if hp_pct|add:0 >= 50 %}good{% elif hp_pct|add:0 >= 25 %}warn{% else %}danger{% endif %}"
+             style="width:{{ hp_pct }}%"></div>
+    </div>
+
+    <div style="font-size:0.82rem; color:var(--text-dim);">
+        주사위 {{ request.user.character.dice_min }}–{{ request.user.character.dice_max }}
+        {% if run.skills.critical %}
+        &nbsp;·&nbsp;<span class="skill-badge">⚡ 크리티컬 Lv.{{ run.skills.critical }}</span>
+        {% endif %}
+    </div>
+</div>
+
+{# ══════════════════════════════════════
+   액션 패널 — 페이즈별 분기
+══════════════════════════════════════ #}
+
 {% if run.phase == "roll" %}
+{# ── 주사위 굴리기 ── #}
+<div class="card" style="text-align:center; padding:28px 20px;">
+    <p style="color:var(--text-dim); margin-bottom:18px; font-size:0.95rem;">
+        주사위를 굴려 이번 턴을 시작하세요.
+    </p>
     <form method="post" action="{% url 'game:battle_roll' %}">
         {% csrf_token %}
-        <button type="submit">주사위 굴리기</button>
+        <button type="submit" class="btn btn-primary" style="font-size:1.1rem; padding:13px 40px;">
+            🎲 주사위 굴리기
+        </button>
     </form>
-    <a href="{% url 'game:home' %}">홈으로 (이어하기 가능)</a>
+    <p style="margin-top:20px;">
+        <a href="{% url 'game:home' %}" style="font-size:0.82rem; color:var(--text-dim); text-decoration:none;">
+            ← 홈으로 (이어하기 가능)
+        </a>
+    </p>
+</div>
+
 {% elif run.phase == "action" %}
-    <p>내 주사위: {{ run.my_roll }}</p>
+{# ── 공격 / 수비 선택 ── #}
+<div class="card" style="text-align:center; padding:24px 20px;">
+    <div class="dice-display">{{ run.my_roll }}</div>
+    <p style="color:var(--text-dim); margin-bottom:18px; font-size:0.9rem;">
+        공격 또는 수비를 선택하세요.
+    </p>
     <form method="post" action="{% url 'game:battle_action' %}">
         {% csrf_token %}
-        <button type="submit" name="mode" value="attack">공격</button>
-        <button type="submit" name="mode" value="defend">수비</button>
+        <div class="btn-row" style="justify-content:center;">
+            <button type="submit" name="mode" value="attack" class="btn btn-attack"
+                    style="padding:14px 22px; flex-direction:column; display:flex; align-items:center; gap:4px;">
+                <span style="font-size:1.1rem;">⚔ 공격</span>
+                <span style="font-size:0.78rem; font-weight:400; opacity:0.8;">
+                    {{ run.my_roll }} 피해 + 반격 ({{ run.enemy.dice_min }}–{{ run.enemy.dice_max }})
+                </span>
+            </button>
+            <button type="submit" name="mode" value="defend" class="btn btn-defend"
+                    style="padding:14px 22px; flex-direction:column; display:flex; align-items:center; gap:4px;">
+                <span style="font-size:1.1rem;">🛡 수비</span>
+                <span style="font-size:0.78rem; font-weight:400; opacity:0.8;">
+                    {{ run.my_roll }} 방어 vs 적 ({{ run.enemy.dice_min }}–{{ run.enemy.dice_max }})
+                </span>
+            </button>
+        </div>
     </form>
+</div>
+
 {% elif run.phase == "won" %}
-    <h2>승리!</h2>
-    <p>골드 +{{ run.gold_gained }}</p>
-    <h3>스킬 획득</h3>
+{# ── 전투 승리 · 스킬 선택 ── #}
+<div class="card" style="text-align:center; padding:28px 20px;">
+    <p class="result-title result-victory">승리!</p>
+    <p class="gold-text" style="font-size:1.05rem; margin-bottom:22px;">
+        🪙 골드 +{{ run.gold_gained }}
+    </p>
+
+    <p style="color:var(--text-dim); font-size:0.88rem; margin-bottom:12px;">
+        스킬을 획득하거나 건너뛰세요.
+    </p>
     <form method="post" action="{% url 'game:choose_skill' %}">
         {% csrf_token %}
         {% for opt in skill_options %}
-            <button type="submit" name="skill" value="{{ opt.code }}">{{ opt.name }} Lv.{{ opt.current_level }} → {{ opt.next_level }}</button>
+        <button type="submit" name="skill" value="{{ opt.code }}" class="btn btn-skill">
+            <span>⚡ {{ opt.name }}</span>
+            <span style="font-size:0.82rem; color:var(--text-dim);">
+                Lv.{{ opt.current_level }} → <strong style="color:var(--gold);">{{ opt.next_level }}</strong>
+            </span>
+        </button>
         {% endfor %}
-        <button type="submit" name="skill" value="skip">건너뛰기</button>
+        <button type="submit" name="skill" value="skip" class="btn btn-skip"
+                style="width:100%; padding:10px; margin-top:6px;">
+            건너뛰기
+        </button>
     </form>
+</div>
+
 {% elif run.phase == "act_clear" %}
-    <h2>Act 클리어!</h2>
-    <p>골드 +{{ run.gold_gained }} (임시 골드 {{ run.pending_gold }})</p>
-    <form method="post" action="{% url 'game:abandon_run' %}">
-        {% csrf_token %}
-        <button type="submit">홈으로</button>
-    </form>
+{# ── Act 클리어 / 전체 클리어 ── #}
+<div class="card" style="text-align:center; padding:32px 20px;">
+    {% if has_next_act %}
+        <p class="result-title result-act-clear">Act {{ run.current_act }} 클리어!</p>
+    {% else %}
+        <p class="result-title result-act-clear">전체 클리어! 🎉</p>
+    {% endif %}
+
+    <p class="gold-text" style="font-size:1.1rem; margin-bottom:6px;">
+        🪙 누적 골드 {{ run.pending_gold }} G
+    </p>
+    <p style="color:var(--text-dim); font-size:0.85rem; margin-bottom:26px;">
+        {% if has_next_act %}귀환하면 골드를 영구 보관합니다. 도전 시 HP를 회복하고 다음 Act로 진행합니다.{% else %}귀환하여 모든 골드를 영구 보관하세요.{% endif %}
+    </p>
+
+    <div class="btn-row" style="justify-content:center;">
+        <form method="post" action="{% url 'game:return_run' %}" style="flex:1; display:flex;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-gold" style="width:100%;">🏠 귀환하기</button>
+        </form>
+        {% if has_next_act %}
+        <form method="post" action="{% url 'game:challenge_next_act' %}" style="flex:1; display:flex;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-attack" style="width:100%;">▶ Act {{ run.current_act|add:1 }} 도전</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
 {% elif run.phase == "dead" %}
-    <h2>패배...</h2>
-    <p>런이 종료되었습니다.</p>
+{# ── 패배 ── #}
+<div class="card" style="text-align:center; padding:32px 20px;">
+    <p class="result-title result-defeat">패배...</p>
+    <p style="color:var(--text-dim); margin:10px 0 26px; font-size:0.9rem;">
+        런이 종료되었습니다.
+    </p>
     <form method="post" action="{% url 'game:abandon_run' %}">
         {% csrf_token %}
-        <button type="submit">홈으로</button>
+        <button type="submit" class="btn btn-primary" style="padding:12px 36px;">
+            홈으로
+        </button>
     </form>
+</div>
+
 {% endif %}
+
 {% endblock content %}
