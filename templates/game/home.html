@@ -20,6 +20,11 @@
         </div>
     </div>
 
+    {# ── 상점 진입 버튼 ── #}
+    <div style="text-align:center; margin:10px 0;">
+        <a href="{% url 'game:shop' %}" class="btn btn-gold">🛒 상점</a>
+    </div>
+
     {% if request.session.run %}
         <div class="card">
             <p style="font-size:0.8rem; color:var(--text-dim); margin-bottom:10px; text-transform:uppercase; letter-spacing:0.05em;">런 진행 중</p>

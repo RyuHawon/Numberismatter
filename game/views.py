@@ -6,6 +6,7 @@ from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 
+from . import services
 from .models import Enemy, Skill
 
 DEFEND_CHANCE = 0.3
@@ -14,6 +15,16 @@ DIE_KINDS = ("attack", "defense", "heal")
 
 def home(request):
     return render(request, "game/home.html")
+
+
+@login_required
+def shop(request):
+    character = request.user.character
+    context = {
+        "shop": services.build_shop(character),
+        "gold": character.permanent_gold,
+    }
+    return render(request, "game/shop.html", context)
 
 
 @login_required

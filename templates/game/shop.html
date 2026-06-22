@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+    <h1 style="font-size:1.4rem;">상점</h1>
+    <span class="gold-text" style="font-size:1.1rem;">🪙 {{ gold }} G</span>
+</div>
+
+<div class="card">
+    {% for item in shop %}
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:14px 0; {% if not forloop.first %}border-top:1px solid var(--border);{% endif %}">
+        <div>
+            <div style="font-weight:700;">{{ item.name }}
+                <span style="color:var(--text-dim); font-size:0.8rem;">Lv.{{ item.level }}/{{ item.max_level }}</span>
+            </div>
+            <div style="font-size:0.8rem; color:var(--text-dim);">{{ item.description }}</div>
+        </div>
+        {% if item.maxed %}
+        <span style="color:var(--text-dim); font-size:0.85rem; font-weight:700;">MAX</span>
+        {% else %}
+        <button class="btn btn-gold" disabled>🪙 {{ item.cost }}</button>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+
+<p style="margin-top:20px; text-align:center;">
+    <a href="{% url 'game:home' %}" style="font-size:0.85rem; color:var(--text-dim); text-decoration:none;">← 홈으로</a>
+</p>
+{% endblock %}
