@@ -10,7 +10,6 @@ from .models import Enemy, Skill
 
 DEFEND_CHANCE = 0.3
 DIE_KINDS = ("attack", "defense", "heal")
-COST_STEP = 10
 
 
 def home(request):
@@ -41,9 +40,6 @@ def abandon_run(request):
     request.session.pop("run", None)
     return redirect("game:home")
 
-def upgrade_cost(upgrade, level):
-    return upgrade.cost + level * COST_STEP
-
 
 def create_enemy_intent(enemy):
     if random.random() < DEFEND_CHANCE:
@@ -61,7 +57,7 @@ def create_enemy_intent(enemy):
 def _ensure_enemy(run):
     if "enemy" in run:
         return False
-    
+
     candidates = list(Enemy.objects.filter(act=run["current_act"], stage=run["current_stage"]))
     enemy = random.choices(candidates, weights=[c.weight for c in candidates])[0]
     run["enemy"] = {
