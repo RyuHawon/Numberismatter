@@ -88,6 +88,7 @@ class Enemy(models.Model):
     is_boss = models.BooleanField(default=False)
     gold_dice_min = models.IntegerField(default=1)
     gold_dice_max = models.IntegerField(default=20)
+    weight = models.IntegerField(default=100)  # 같은 스테이지 내 등장 가중치 (희귀 적은 낮게)
 
     class Meta:
         db_table = "enemies"
