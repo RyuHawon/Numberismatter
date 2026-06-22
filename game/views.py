@@ -103,16 +103,12 @@ def battle_roll(request):
     run = request.session.get("run")
     if not run or run.get("phase") != "roll" or "enemy" not in run:
         return redirect("game:battle")
-    
+
     character = request.user.character
-    run["my_dice"] = {
-        kind: random.randint(character.dice_min, character.dice_max)
-        for kind in DIE_KINDS
-    }
+    run["my_dice"] = {kind: random.randint(character.dice_min, character.dice_max) for kind in DIE_KINDS}
     run["phase"] = "action"
     request.session.modified = True
     return redirect("game:battle")
-
 
 
 @login_required
@@ -121,11 +117,11 @@ def battle_action(request):
     run = request.session.get("run")
     if not run or run.get("phase") != "action" or "my_dice" not in run:
         return redirect("game:battle")
-    
+
     choice = request.POST.get("choice")
     if choice not in DIE_KINDS:
         return redirect("game:battle")
-    
+
     enemy = run["enemy"]
     intent = enemy["intent"]
     value = run["my_dice"][choice]
@@ -145,15 +141,15 @@ def battle_action(request):
             if crit_skill and random.random() < crit_level * crit_skill.effect_per_level:
                 attack_value *= 2
                 is_crit = True
-        
+
         after_armor = max(attack_value - enemy["armor"], 0)
         enemy["armor"] = max(enemy["armor"] - attack_value, 0)
         damage_dealt = min(after_armor, enemy["hp"])
         enemy["hp"] -= damage_dealt
-    
+
     elif choice == "defense":
         block = value
-    
+
     else:
         heal_done = min(value, run["max_hp"] - run["hp"])
         run["hp"] += heal_done
@@ -166,9 +162,9 @@ def battle_action(request):
                 absorbed = min(intent["damage"], remaining_block)
                 remaining_block -= absorbed
                 damage_taken += intent["damage"] - absorbed
-            
+
             run["hp"] = max(run["hp"] - damage_taken, 0)
-        
+
         else:
             enemy["armor"] = intent["armor_gain"]
 
