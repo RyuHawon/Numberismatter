@@ -10,6 +10,7 @@ from .models import Enemy, Skill
 
 DEFEND_CHANCE = 0.3
 DIE_KINDS = ("attack", "defense", "heal")
+COST_STEP = 10
 
 
 def home(request):
@@ -39,6 +40,9 @@ def start_run(request):
 def abandon_run(request):
     request.session.pop("run", None)
     return redirect("game:home")
+
+def upgrade_cost(upgrade, level):
+    return upgrade.cost + level * COST_STEP
 
 
 def create_enemy_intent(enemy):
