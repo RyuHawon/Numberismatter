@@ -78,23 +78,31 @@
 {# ── 지난 턴 결과 ── #}
 {% if run.last_result %}
 <div class="battle-log">
-    {% if run.last_result.mode == "attack" %}
-        ⚔ <strong>공격</strong> — 내 주사위 <strong>{{ run.last_result.my_roll }}</strong>
-        → 피해 <span class="log-dealt">{{ run.last_result.damage_dealt }}</span>
-        {% if run.last_result.is_crit %}<span class="log-crit"> ★ CRITICAL!</span>{% endif %}
-        {% if run.last_result.enemy_roll %}
-        <br>
-        적 반격 주사위 <strong>{{ run.last_result.enemy_roll }}</strong>
-        → 받은 피해 <span class="log-taken">{{ run.last_result.damage_taken }}</span>
-        {% endif %}
+    {% with r=run.last_result %}
+    {# 내가 한 행동 #}
+    {% if r.choice == "attack" %}
+        ⚔ <strong>공격</strong> 주사위 <strong>{{ r.value }}</strong>
+        → 적에게 <span class="log-dealt">{{ r.damage_dealt }}</span> 피해
+        {% if r.is_crit %}<span class="log-crit"> ★ CRITICAL!</span>{% endif %}
+    {% elif r.choice == "defense" %}
+        🛡 <strong>수비</strong> 주사위 <strong>{{ r.value }}</strong> 로 피해 차단
     {% else %}
-        🛡 <strong>수비</strong> — 내 주사위 <strong>{{ run.last_result.my_roll }}</strong>
-        / 적 주사위 <strong>{{ run.last_result.enemy_roll }}</strong>
-        → 받은 피해 <span class="log-taken">{{ run.last_result.damage_taken }}</span>
-        {% if run.last_result.damage_taken == 0 %}
-        <span class="log-blocked"> (완전 방어!)</span>
-        {% endif %}
+        ✚ <strong>회복</strong> 주사위 <strong>{{ r.value }}</strong>
+        → HP <span class="log-blocked">+{{ r.heal_done }}</span>
     {% endif %}
+
+    {# 적이 한 행동 — 적이 살아서 실제로 행동했을 때만 #}
+    {% if run.enemy.hp > 0 %}
+    <br>
+    {% if r.intent.type == "attack" %}
+        적 공격 <strong>{{ r.intent.damage }}</strong>{% if r.intent.hits > 1 %} × {{ r.intent.hits }}회{% endif %}
+        → 받은 피해 <span class="log-taken">{{ r.damage_taken }}</span>
+        {% if r.damage_taken == 0 %}<span class="log-blocked"> (완전 방어!)</span>{% endif %}
+    {% else %}
+        적이 <span style="color:#60a5fa;">방어 태세</span> — 방어구 +{{ r.intent.armor_gain }}
+    {% endif %}
+    {% endif %}
+    {% endwith %}
 </div>
 {% endif %}
 
@@ -142,28 +150,28 @@
 </div>
 
 {% elif run.phase == "action" %}
-{# ── 공격 / 수비 선택 ── #}
-<div class="card" style="text-align:center; padding:24px 20px;">
-    <div class="dice-display">{{ run.my_roll }}</div>
-    <p style="color:var(--text-dim); margin-bottom:18px; font-size:0.9rem;">
-        공격 또는 수비를 선택하세요.
+{# ── 주사위 3개 중 하나 선택 ── #}
+<div class="card" style="padding:24px 20px;">
+    <p style="text-align:center; color:var(--text-dim); margin-bottom:16px; font-size:0.9rem;">
+        주사위 3개 중 <strong style="color:var(--text);">하나</strong>만 골라 사용하세요.
     </p>
     <form method="post" action="{% url 'game:battle_action' %}">
         {% csrf_token %}
-        <div class="btn-row" style="justify-content:center;">
-            <button type="submit" name="mode" value="attack" class="btn btn-attack"
-                    style="padding:14px 22px; flex-direction:column; display:flex; align-items:center; gap:4px;">
-                <span style="font-size:1.1rem;">⚔ 공격</span>
-                <span style="font-size:0.78rem; font-weight:400; opacity:0.8;">
-                    {{ run.my_roll }} 피해 + 반격 ({{ run.enemy.dice_min }}–{{ run.enemy.dice_max }})
-                </span>
+        <div class="btn-row">
+            <button type="submit" name="choice" value="attack" class="btn btn-attack die-btn">
+                <span class="die-num">{{ run.my_dice.attack }}</span>
+                <span class="die-cap">⚔ 공격</span>
+                <span class="die-sub">{{ run.my_dice.attack }} 피해</span>
             </button>
-            <button type="submit" name="mode" value="defend" class="btn btn-defend"
-                    style="padding:14px 22px; flex-direction:column; display:flex; align-items:center; gap:4px;">
-                <span style="font-size:1.1rem;">🛡 수비</span>
-                <span style="font-size:0.78rem; font-weight:400; opacity:0.8;">
-                    {{ run.my_roll }} 방어 vs 적 ({{ run.enemy.dice_min }}–{{ run.enemy.dice_max }})
-                </span>
+            <button type="submit" name="choice" value="defense" class="btn btn-defend die-btn">
+                <span class="die-num">{{ run.my_dice.defense }}</span>
+                <span class="die-cap">🛡 수비</span>
+                <span class="die-sub">{{ run.my_dice.defense }} 막기</span>
+            </button>
+            <button type="submit" name="choice" value="heal" class="btn btn-heal die-btn">
+                <span class="die-num">{{ run.my_dice.heal }}</span>
+                <span class="die-cap">✚ 회복</span>
+                <span class="die-sub">{{ run.my_dice.heal }} 회복</span>
             </button>
         </div>
     </form>
