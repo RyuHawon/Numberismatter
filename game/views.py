@@ -54,6 +54,28 @@ def create_enemy_intent(enemy):
     }
 
 
+def _ensure_enemy(run):
+    if "enemy" in run:
+        return False
+    
+    candidates = list(Enemy.objects.filter(act=run["current_act"], stage=run["current_stage"]))
+    enemy = random.choice(candidates, weights=[c.weight for c in candidates])[0]
+    run["enemy"] = {
+        "name": enemy.name,
+        "hp": enemy.hp,
+        "max_hp": enemy.hp,
+        "dice_min": enemy.dice_min,
+        "dice_max": enemy.dice_max,
+        "is_boss": enemy.is_boss,
+        "gold_dice_min": enemy.gold_dice_min,
+        "gold_dice_max": enemy.gold_dice_max,
+        "image": enemy.image,
+        "armor": 0,
+    }
+    run["enemy"]["intent"] = create_enemy_intent(run["enemy"])
+    return True
+
+
 def _battle_context(run):
     context = {"run": run}
     phase = run.get("phase")
@@ -82,34 +104,18 @@ def _battle_response(request, run):
             response = HttpResponse()
             response["HX-Redirect"] = reverse("game:home")
             return response
+        _ensure_enemy(run)
         return render(request, "game/_battle_body.html", _battle_context(run))
     return redirect("game:battle")
 
 
 @login_required
 def battle(request):
+    if _ensure_enemy(run):
+        request.session.modified = True
     run = request.session.get("run")
     if not run:
         return redirect("game:home")
-
-    if "enemy" not in run:
-        candidates = Enemy.objects.filter(act=run["current_act"], stage=run["current_stage"])
-        enemy = random.choice(list(candidates))
-        run["enemy"] = {
-            "name": enemy.name,
-            "hp": enemy.hp,
-            "max_hp": enemy.hp,
-            "dice_min": enemy.dice_min,
-            "dice_max": enemy.dice_max,
-            "is_boss": enemy.is_boss,
-            "gold_dice_min": enemy.gold_dice_min,
-            "gold_dice_max": enemy.gold_dice_max,
-            "image": enemy.image,
-            "armor": 0,
-        }
-        run["enemy"]["intent"] = create_enemy_intent(run["enemy"])
-        request.session.modified = True
-
     template = "game/_battle_body.html" if request.headers.get("HX-Request") else "game/battle.html"
     return render(request, template, _battle_context(run))
 
