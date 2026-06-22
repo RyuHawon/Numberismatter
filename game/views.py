@@ -59,7 +59,7 @@ def _ensure_enemy(run):
         return False
     
     candidates = list(Enemy.objects.filter(act=run["current_act"], stage=run["current_stage"]))
-    enemy = random.choice(candidates, weights=[c.weight for c in candidates])[0]
+    enemy = random.choices(candidates, weights=[c.weight for c in candidates])[0]
     run["enemy"] = {
         "name": enemy.name,
         "hp": enemy.hp,
@@ -111,11 +111,13 @@ def _battle_response(request, run):
 
 @login_required
 def battle(request):
-    if _ensure_enemy(run):
-        request.session.modified = True
     run = request.session.get("run")
     if not run:
         return redirect("game:home")
+    if _ensure_enemy(run):
+        request.session.modified = True
+    run = request.session.get("run")
+
     template = "game/_battle_body.html" if request.headers.get("HX-Request") else "game/battle.html"
     return render(request, template, _battle_context(run))
 
