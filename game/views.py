@@ -3,6 +3,8 @@ import random
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_POST
+from django.http import HttpResponse
+from django.urls import reverse
 
 from .models import Enemy, Skill
 
@@ -52,6 +54,36 @@ def create_enemy_intent(enemy):
     }
 
 
+def _battle_context(run):
+    context = {"run": run}
+    phase = run.get("phase")
+    if phase == "act_clear":
+        context["has_next_act"] = Enemy.objects.filter(act=run["current_act"] + 1).exists()
+    if phase == "won":
+        options = []
+        for skill in Skill.objects.all():
+            level = run["skills"].get(skill.code, 0)
+            if level < skill.max_level:
+                options.append({
+                    "code": skill.code,
+                    "name": skill.name,
+                    "current_level": level,
+                    "next_level": level + 1,
+                })
+        context["skill_options"] = options
+    return context
+
+
+def _battle_response(request, run):
+    if request.headers.get("HX-Request"):
+        if not run:
+            response = HttpResponse()
+            response["HX-Redirect"] = reverse("game:home")
+            return response
+        return render(request, "game/_battle_body.html", _battle_context(run))
+    return redirect("game:battle")
+
+
 @login_required
 def battle(request):
     run = request.session.get("run")
@@ -76,25 +108,9 @@ def battle(request):
         run["enemy"]["intent"] = create_enemy_intent(run["enemy"])
         request.session.modified = True
 
-    context = {"run": run}
-    if run.get("phase") == "act_clear":
-        context["has_next_act"] = Enemy.objects.filter(act=run["current_act"] + 1).exists()
-    if run.get("phase") == "won":
-        options = []
-        for skill in Skill.objects.all():
-            level = run["skills"].get(skill.code, 0)
-            if level < skill.max_level:
-                options.append(
-                    {
-                        "code": skill.code,
-                        "name": skill.name,
-                        "current_level": level,
-                        "next_level": level + 1,
-                    }
-                )
-        context["skill_options"] = options
 
-    return render(request, "game/battle.html", context)
+    template = "game/_battle_body.html" if request.headers.get("HX-Request") else "game/battle.html"
+    return render(request, template, _battle_context(run))
 
 
 @login_required
@@ -102,13 +118,13 @@ def battle(request):
 def battle_roll(request):
     run = request.session.get("run")
     if not run or run.get("phase") != "roll" or "enemy" not in run:
-        return redirect("game:battle")
+        return _battle_response(request, run)
 
     character = request.user.character
     run["my_dice"] = {kind: random.randint(character.dice_min, character.dice_max) for kind in DIE_KINDS}
     run["phase"] = "action"
     request.session.modified = True
-    return redirect("game:battle")
+    return _battle_response(request, run)
 
 
 @login_required
@@ -116,11 +132,11 @@ def battle_roll(request):
 def battle_action(request):
     run = request.session.get("run")
     if not run or run.get("phase") != "action" or "my_dice" not in run:
-        return redirect("game:battle")
+        return _battle_response(request, run)
 
     choice = request.POST.get("choice")
     if choice not in DIE_KINDS:
-        return redirect("game:battle")
+        return _battle_response(request, run)
 
     enemy = run["enemy"]
     intent = enemy["intent"]
@@ -194,7 +210,7 @@ def battle_action(request):
 
     run.pop("my_dice", None)
     request.session.modified = True
-    return redirect("game:battle")
+    return _battle_response(request, run)
 
 
 @login_required
@@ -202,7 +218,7 @@ def battle_action(request):
 def choose_skill(request):
     run = request.session.get("run")
     if not run or run.get("phase") != "won":
-        return redirect("game:battle")
+        return _battle_response(request, run)
 
     code = request.POST.get("skill")
     if code and code != "skip":
@@ -218,7 +234,7 @@ def choose_skill(request):
     run.pop("gold_gained", None)
     run["phase"] = "roll"
     request.session.modified = True
-    return redirect("game:battle")
+    return _battle_response(request, run)
 
 
 @login_required
@@ -251,4 +267,4 @@ def challenge_next_act(request):
     run.pop("gold_gained", None)
     run["phase"] = "roll"
     request.session.modified = True
-    return redirect("game:battle")
+    return _battle_response(request, run)
