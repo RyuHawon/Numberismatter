@@ -129,6 +129,7 @@
         .btn-primary { background: var(--surface-2); color: var(--text); border: 1px solid rgba(255,255,255,0.1); }
         .btn-attack  { background: #be2323; color: #fff; }
         .btn-defend  { background: #1a4f8a; color: #fff; }
+        .btn-heal    { background: #1f7a3d; color: #fff; }
         .btn-gold    { background: #4a3800; color: var(--gold); border: 1px solid var(--gold); }
         .btn-danger  { background: #7a1a1a; color: #ff9090; border: 1px solid #aa2a2a; }
         .btn-skip    { background: none; border: 1px solid var(--border); color: var(--text-dim); }
@@ -195,6 +196,11 @@
             color: var(--gold);
             text-shadow: 0 0 20px rgba(244,196,48,0.5);
         }
+        /* 주사위 3개 선택 버튼 (공격/수비/회복) */
+        .die-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 13px 8px; }
+        .die-num { font-size: 1.9rem; font-weight: 800; line-height: 1.1; }
+        .die-cap { font-size: 0.92rem; font-weight: 700; }
+        .die-sub { font-size: 0.72rem; font-weight: 400; opacity: 0.85; }
 
         /* ── Enemy ── */
         .enemy-image {
@@ -242,6 +248,19 @@
             font-size: 0.78rem;
             color: var(--text-dim);
         }
+
+        /* ── Enemy Intent / Armor ── */
+        .intent-label { font-size: 0.72rem; color: var(--text-dim); display: block; margin-bottom: 4px; letter-spacing: 0.05em; }
+        .intent-badge {
+            display: inline-block;
+            font-size: 0.85rem;
+            font-weight: 700;
+            padding: 4px 11px;
+            border-radius: 6px;
+        }
+        .intent-attack  { background: rgba(233,69,96,0.15);  color: var(--accent); border: 1px solid rgba(233,69,96,0.45); }
+        .intent-defense { background: rgba(96,165,250,0.15); color: #60a5fa;       border: 1px solid rgba(96,165,250,0.45); }
+        .armor-chip     { color: #60a5fa; font-weight: 700; }
 
         /* ── Battle Header ── */
         .battle-header {

@@ -6,6 +6,9 @@ from django.views.decorators.http import require_POST
 
 from .models import Enemy, Skill
 
+DEFEND_CHANCE = 0.3
+DIE_KINDS = ("attack", "defense", "heal")
+
 
 def home(request):
     return render(request, "game/home.html")
@@ -36,6 +39,19 @@ def abandon_run(request):
     return redirect("game:home")
 
 
+def create_enemy_intent(enemy):
+    if random.random() < DEFEND_CHANCE:
+        return {
+            "type": "defense",
+            "armor_gain": random.randint(enemy["dice_min"], enemy["dice_max"]),
+        }
+    return {
+        "type": "attack",
+        "damage": random.randint(enemy["dice_min"], enemy["dice_max"]),
+        "hits": 1,
+    }
+
+
 @login_required
 def battle(request):
     run = request.session.get("run")
@@ -55,7 +71,9 @@ def battle(request):
             "gold_dice_min": enemy.gold_dice_min,
             "gold_dice_max": enemy.gold_dice_max,
             "image": enemy.image,
+            "armor": 0,
         }
+        run["enemy"]["intent"] = create_enemy_intent(run["enemy"])
         request.session.modified = True
 
     context = {"run": run}
@@ -85,8 +103,9 @@ def battle_roll(request):
     run = request.session.get("run")
     if not run or run.get("phase") != "roll" or "enemy" not in run:
         return redirect("game:battle")
+
     character = request.user.character
-    run["my_roll"] = random.randint(character.dice_min, character.dice_max)
+    run["my_dice"] = {kind: random.randint(character.dice_min, character.dice_max) for kind in DIE_KINDS}
     run["phase"] = "action"
     request.session.modified = True
     return redirect("game:battle")
@@ -96,45 +115,67 @@ def battle_roll(request):
 @require_POST
 def battle_action(request):
     run = request.session.get("run")
-    if not run or run.get("phase") != "action":
+    if not run or run.get("phase") != "action" or "my_dice" not in run:
         return redirect("game:battle")
-    mode = request.POST.get("mode")
-    if mode not in ("attack", "defend"):
+
+    choice = request.POST.get("choice")
+    if choice not in DIE_KINDS:
         return redirect("game:battle")
 
     enemy = run["enemy"]
-    my_roll = run["my_roll"]
-    enemy_roll = None
-    damage_taken = 0
+    intent = enemy["intent"]
+    value = run["my_dice"][choice]
+
+    block = 0
     damage_dealt = 0
+    heal_done = 0
+    damage_taken = 0
     is_crit = False
 
-    if mode == "attack":
-        damage_dealt = my_roll
+    if choice == "attack":
+        attack_value = value
+
         crit_level = run["skills"].get("critical", 0)
         if crit_level > 0:
             crit_skill = Skill.objects.filter(code="critical").first()
             if crit_skill and random.random() < crit_level * crit_skill.effect_per_level:
-                damage_dealt = my_roll * 2
+                attack_value *= 2
                 is_crit = True
-        enemy["hp"] = max(enemy["hp"] - damage_dealt, 0)
 
-        if enemy["hp"] > 0:
-            enemy_roll = random.randint(enemy["dice_min"], enemy["dice_max"])
-            damage_taken = enemy_roll
-            run["hp"] = max(run["hp"] - enemy_roll, 0)
-    else:  # defend: 내 주사위 눈금만큼만 방어, 초과 방어량은 누적 없이 사라짐
-        enemy_roll = random.randint(enemy["dice_min"], enemy["dice_max"])
-        damage_taken = max(enemy_roll - my_roll, 0)
-        run["hp"] = max(run["hp"] - damage_taken, 0)
+        after_armor = max(attack_value - enemy["armor"], 0)
+        enemy["armor"] = max(enemy["armor"] - attack_value, 0)
+        damage_dealt = min(after_armor, enemy["hp"])
+        enemy["hp"] -= damage_dealt
+
+    elif choice == "defense":
+        block = value
+
+    else:
+        heal_done = min(value, run["max_hp"] - run["hp"])
+        run["hp"] += heal_done
+
+    if enemy["hp"] > 0:
+        enemy["armor"] = 0
+        if intent["type"] == "attack":
+            remaining_block = block
+            for _ in range(intent["hits"]):
+                absorbed = min(intent["damage"], remaining_block)
+                remaining_block -= absorbed
+                damage_taken += intent["damage"] - absorbed
+
+            run["hp"] = max(run["hp"] - damage_taken, 0)
+
+        else:
+            enemy["armor"] = intent["armor_gain"]
 
     run["last_result"] = {
-        "mode": mode,
-        "my_roll": my_roll,
-        "damage_dealt": damage_dealt,
+        "choice": choice,
+        "value": value,
         "is_crit": is_crit,
-        "enemy_roll": enemy_roll,
+        "damage_dealt": damage_dealt,
+        "heal_done": heal_done,
         "damage_taken": damage_taken,
+        "intent": intent,
     }
 
     if enemy["hp"] <= 0:
@@ -143,12 +184,15 @@ def battle_action(request):
         run["pending_gold"] += gold
         run["gold_gained"] = gold
         run["phase"] = "act_clear" if enemy["is_boss"] else "won"
+        enemy.pop("intent", None)
     elif run["hp"] <= 0:
         run["phase"] = "dead"
+        enemy.pop("intent", None)
     else:
+        enemy["intent"] = create_enemy_intent(enemy)
         run["phase"] = "roll"
 
-    run.pop("my_roll", None)
+    run.pop("my_dice", None)
     request.session.modified = True
     return redirect("game:battle")
 
