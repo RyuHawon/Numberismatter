@@ -1,10 +1,10 @@
 import random
 
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import redirect, render
-from django.views.decorators.http import require_POST
 from django.http import HttpResponse
+from django.shortcuts import redirect, render
 from django.urls import reverse
+from django.views.decorators.http import require_POST
 
 from .models import Enemy, Skill
 
@@ -64,12 +64,14 @@ def _battle_context(run):
         for skill in Skill.objects.all():
             level = run["skills"].get(skill.code, 0)
             if level < skill.max_level:
-                options.append({
-                    "code": skill.code,
-                    "name": skill.name,
-                    "current_level": level,
-                    "next_level": level + 1,
-                })
+                options.append(
+                    {
+                        "code": skill.code,
+                        "name": skill.name,
+                        "current_level": level,
+                        "next_level": level + 1,
+                    }
+                )
         context["skill_options"] = options
     return context
 
@@ -107,7 +109,6 @@ def battle(request):
         }
         run["enemy"]["intent"] = create_enemy_intent(run["enemy"])
         request.session.modified = True
-
 
     template = "game/_battle_body.html" if request.headers.get("HX-Request") else "game/battle.html"
     return render(request, template, _battle_context(run))

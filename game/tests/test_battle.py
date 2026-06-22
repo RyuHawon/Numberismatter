@@ -370,9 +370,9 @@ class BattleTurnTest(TestCase):
         # htmx 요청이면 전체 페이지가 아니라 전투 영역 조각(200)만 돌려준다
         self._setup_battle(my_dice={"attack": 3, "defense": 0, "heal": 0}, enemy_hp=20)
         response = self.client.post(self.action_url, {"choice": "attack"}, HTTP_HX_REQUEST="true")
-        self.assertEqual(response.status_code, 200)      # 리다이렉트(302) 아님
-        self.assertNotContains(response, "</body>")      # 전체 페이지 아님 (조각만)
-        self.assertContains(response, "내 상태")          # 전투 영역 내용 포함
+        self.assertEqual(response.status_code, 200)  # 리다이렉트(302) 아님
+        self.assertNotContains(response, "</body>")  # 전체 페이지 아님 (조각만)
+        self.assertContains(response, "내 상태")  # 전투 영역 내용 포함
 
     def test_non_htmx_action_redirects(self):
         # 일반 요청(폴백)은 기존처럼 리다이렉트한다
