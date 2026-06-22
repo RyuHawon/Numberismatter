@@ -40,6 +40,20 @@
         {% if run.enemy.is_boss %}<span class="boss-badge">BOSS</span>{% endif %}
     </p>
 
+    {# 적 인텐트 텔레그래프 — 다음 턴 무엇을 할지 미리 표시 #}
+    {% if run.enemy.intent %}
+    <p style="margin-bottom:14px;">
+        <span class="intent-label">다음 행동</span>
+        {% if run.enemy.intent.type == "attack" %}
+        <span class="intent-badge intent-attack">
+            ⚔ {{ run.enemy.intent.damage }} 피해{% if run.enemy.intent.hits > 1 %} × {{ run.enemy.intent.hits }}회{% endif %}
+        </span>
+        {% else %}
+        <span class="intent-badge intent-defense">🛡 방어 태세 +{{ run.enemy.intent.armor_gain }}</span>
+        {% endif %}
+    </p>
+    {% endif %}
+
     {% widthratio run.enemy.hp run.enemy.max_hp 100 as enemy_hp_pct %}
     <div style="text-align:left;">
         <div class="hp-label">HP {{ run.enemy.hp }} / {{ run.enemy.max_hp }}</div>
@@ -47,22 +61,13 @@
             <div class="hp-bar {% if enemy_hp_pct|add:0 >= 50 %}good{% elif enemy_hp_pct|add:0 >= 25 %}warn{% else %}danger{% endif %}"
                  style="width:{{ enemy_hp_pct }}%"></div>
         </div>
+        {# 방어구는 한 턴짜리라 0보다 클 때만 표시 #}
+        {% if run.enemy.armor %}
+        <div style="margin-top:6px;">
+            <span class="armor-chip">🛡 방어구 {{ run.enemy.armor }}</span>
+        </div>
+        {% endif %}
     </div>
-
-<p style="font-size:0.8rem; color:var(--text-dim); margin-top:10px;">
-    🛡 방어구 {{ run.enemy.armor }}
-</p>
-
-{% if run.enemy.intent %}
-<div class="battle-log" style="margin-top:12px;">
-    <strong>다음 행동</strong><br>
-    {% if run.enemy.intent.type == "attack" %}
-        ⚔ 공격 — {{ run.enemy.intent.damage }} 피해 × {{ run.enemy.intent.hits }}회
-    {% else %}
-        🛡 방어 — 방어구 +{{ run.enemy.intent.armor_gain }}
-    {% endif %}
-</div>
-{% endif %}
 
     <p style="font-size:0.8rem; color:var(--text-dim); margin-top:10px;">
         주사위 {{ run.enemy.dice_min }}–{{ run.enemy.dice_max }}
