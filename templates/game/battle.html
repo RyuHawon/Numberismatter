@@ -31,18 +31,9 @@
 {# ── 적 패널 ── #}
 {% if run.enemy %}
 <div class="card" style="text-align:center;">
-    {% if run.enemy.image %}
-    <img src="{% static run.enemy.image %}" alt="{{ run.enemy.name }}" class="enemy-image">
-    {% endif %}
-
-    <p style="margin-bottom:14px;">
-        <span class="enemy-name">{{ run.enemy.name }}</span>
-        {% if run.enemy.is_boss %}<span class="boss-badge">BOSS</span>{% endif %}
-    </p>
-
-    {# 적 인텐트 텔레그래프 — 다음 턴 무엇을 할지 미리 표시 #}
+    {# 적 인텐트 텔레그래프 — 몬스터 이미지 바로 위에 미리 표시 #}
     {% if run.enemy.intent %}
-    <p style="margin-bottom:14px;">
+    <p style="margin-bottom:12px;">
         <span class="intent-label">다음 행동</span>
         {% if run.enemy.intent.type == "attack" %}
         <span class="intent-badge intent-attack">
@@ -53,6 +44,15 @@
         {% endif %}
     </p>
     {% endif %}
+
+    {% if run.enemy.image %}
+    <img src="{% static run.enemy.image %}" alt="{{ run.enemy.name }}" class="enemy-image">
+    {% endif %}
+
+    <p style="margin-bottom:14px;">
+        <span class="enemy-name">{{ run.enemy.name }}</span>
+        {% if run.enemy.is_boss %}<span class="boss-badge">BOSS</span>{% endif %}
+    </p>
 
     {% widthratio run.enemy.hp run.enemy.max_hp 100 as enemy_hp_pct %}
     <div style="text-align:left;">
