@@ -97,7 +97,7 @@ def _ensure_enemy(run):
         "armor": 0,
     }
     run["enemy"]["intent"] = create_enemy_intent(run["enemy"])
-    run["skill_uses"]["reroll"] = run["skills"].get("reroll", 0)
+    run.setdefault("skill_uses", {})["reroll"] = run["skills"].get("reroll", 0)
     return True
 
 
