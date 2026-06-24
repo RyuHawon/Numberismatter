@@ -1,10 +1,13 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1>회원정보 수정</h1>
-<form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type='submit'>저장</button>
-</form>
-{% endblock  %}
+<div class="card auth-card">
+    <h1 class="page-title">회원정보 수정</h1>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-primary" style="width:100%;">저장</button>
+    </form>
+    <a href="{% url 'game:home' %}" class="auth-link">← 홈으로</a>
+</div>
+{% endblock content %}
