@@ -2,12 +2,12 @@ import random
 
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from . import services
-from .models import Enemy, Skill
+from .models import Enemy, Skill, Upgrade
 
 DEFEND_CHANCE = 0.3
 DIE_KINDS = ("attack", "defense", "heal")
@@ -25,6 +25,14 @@ def shop(request):
         "gold": character.permanent_gold,
     }
     return render(request, "game/shop.html", context)
+
+
+@login_required
+@require_POST
+def buy_upgrade(request):
+    upgrade = get_object_or_404(Upgrade, pk=request.POST.get("upgrade_id"))
+    services.purchase_upgrade(request.user.character, upgrade)
+    return redirect("game:shop")
 
 
 @login_required
