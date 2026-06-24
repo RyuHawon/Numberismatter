@@ -155,6 +155,18 @@
     <p style="text-align:center; color:var(--text-dim); margin-bottom:16px; font-size:0.9rem;">
         주사위 3개 중 <strong style="color:var(--text);">하나</strong>만 골라 사용하세요.
     </p>
+
+    {% if run.skill_uses.reroll %}
+    <form method="post" action="{% url 'game:battle_reroll' %}"
+          hx-post="{% url 'game:battle_reroll' %}" hx-target="#battle-body" hx-swap="innerHTML"
+          style="text-align:center; margin-bottom:14px;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-skip">
+            🎲 재굴림 · {{ run.skill_uses.reroll }}회 남음
+        </button>
+    </form>
+    {% endif %}
+
     <form method="post" action="{% url 'game:battle_action' %}"
         hx-post="{% url 'game:battle_action' %}" hx-target="#battle-body" hx-swap="innerHTML">
         {% csrf_token %}
