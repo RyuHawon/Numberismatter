@@ -57,7 +57,7 @@ def create_enemy_intent(enemy):
 def _ensure_enemy(run):
     if "enemy" in run:
         return False
-    
+
     candidates = list(Enemy.objects.filter(act=run["current_act"], stage=run["current_stage"]))
     enemy = random.choices(candidates, weights=[c.weight for c in candidates])[0]
     run["enemy"] = {
