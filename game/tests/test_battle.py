@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
@@ -103,6 +105,7 @@ class BattleTurnTest(TestCase):
             "max_hp": max_hp,
             "pending_gold": pending_gold,
             "skills": skills if skills is not None else {},
+            "skill_uses": {},
             "enemy": {
                 "name": "테스트적",
                 "hp": enemy_hp,
@@ -361,6 +364,51 @@ class BattleTurnTest(TestCase):
         run = self.client.session["run"]
         self.assertEqual(run["my_dice"], {"attack": 3, "defense": 3, "heal": 3})
         self.assertEqual(run["phase"], "action")
+
+    # ── 재굴림 스킬 ──
+
+    def test_reroll_replaces_all_dice_and_consumes_one_use(self):
+        # 재굴림은 적 인텐트를 유지한 채 세 주사위를 모두 다시 굴리고 사용 횟수를 1 차감한다
+        initial_dice = {"attack": 1, "defense": 2, "heal": 3}
+        rerolled_dice = {"attack": 6, "defense": 5, "heal": 4}
+        intent = {"type": "attack", "damage": 2, "hits": 1}
+        self._setup_battle(my_dice=initial_dice, intent=intent)
+
+        session = self.client.session
+        session["run"]["skills"] = {"reroll": 1}
+        session["run"]["skill_uses"] = {"reroll": 1}
+        session.save()
+
+        with patch("game.views.roll_player_dice", return_value=rerolled_dice):
+            self.client.post(reverse("game:battle_reroll"))
+
+        run = self.client.session["run"]
+        self.assertEqual(run["my_dice"], rerolled_dice)
+        self.assertEqual(run["skill_uses"]["reroll"], 0)
+        self.assertEqual(run["enemy"]["intent"], intent)
+        self.assertEqual(run["phase"], "action")
+
+    def test_reroll_uses_reset_to_skill_level_for_new_enemy(self):
+        # 새 전투가 시작되면 재굴림 횟수는 보유 레벨만큼 다시 충전된다
+        self.client.force_login(self.user)
+        session = self.client.session
+        session["run"] = {
+            "phase": "roll",
+            "current_act": 1,
+            "current_stage": 1,
+            "hp": 50,
+            "max_hp": 50,
+            "pending_gold": 0,
+            "skills": {"reroll": 2},
+            "skill_uses": {"reroll": 0},
+        }
+        session.save()
+
+        self.client.get(self.battle_url)
+
+        run = self.client.session["run"]
+        self.assertIn("enemy", run)
+        self.assertEqual(run["skill_uses"]["reroll"], 2)
 
     # ── htmx 비동기 응답 ──
 

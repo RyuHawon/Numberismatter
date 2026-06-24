@@ -49,6 +49,7 @@ def start_run(request):
         "max_hp": character.max_hp,
         "pending_gold": 0,
         "skills": {},
+        "skill_uses": {},
     }
     return redirect("game:battle")
 
@@ -58,6 +59,10 @@ def start_run(request):
 def abandon_run(request):
     request.session.pop("run", None)
     return redirect("game:home")
+
+
+def roll_player_dice(character):
+    return {kind: random.randint(character.dice_min, character.dice_max) for kind in DIE_KINDS}
 
 
 def create_enemy_intent(enemy):
@@ -92,6 +97,7 @@ def _ensure_enemy(run):
         "armor": 0,
     }
     run["enemy"]["intent"] = create_enemy_intent(run["enemy"])
+    run.setdefault("skill_uses", {})["reroll"] = run["skills"].get("reroll", 0)
     return True
 
 
@@ -149,8 +155,25 @@ def battle_roll(request):
         return _battle_response(request, run)
 
     character = request.user.character
-    run["my_dice"] = {kind: random.randint(character.dice_min, character.dice_max) for kind in DIE_KINDS}
+    run["my_dice"] = roll_player_dice(character)
     run["phase"] = "action"
+    request.session.modified = True
+    return _battle_response(request, run)
+
+
+@login_required
+@require_POST
+def battle_reroll(request):
+    run = request.session.get("run")
+    if not run or run.get("phase") != "action":
+        return _battle_response(request, run)
+
+    uses_left = run["skill_uses"].get("reroll", 0)
+    if uses_left <= 0:
+        return _battle_response(request, run)
+
+    run["my_dice"] = roll_player_dice(request.user.character)
+    run["skill_uses"]["reroll"] = uses_left - 1
     request.session.modified = True
     return _battle_response(request, run)
 

@@ -12,6 +12,7 @@ urlpatterns = [
     path("battle/roll/", views.battle_roll, name="battle_roll"),
     path("battle/action/", views.battle_action, name="battle_action"),
     path("battle/skill/", views.choose_skill, name="choose_skill"),
+    path("battle/reroll/", views.battle_reroll, name="battle_reroll"),
     path("run/return/", views.return_run, name="return_run"),
     path("battle/challenge/", views.challenge_next_act, name="challenge_next_act"),
     path("shop/", views.shop, name="shop"),
