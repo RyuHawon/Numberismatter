@@ -13,6 +13,7 @@ class Character(models.Model):
     dice_max = models.IntegerField(default=6)
     permanent_gold = models.IntegerField(default=0)
     gold_bonus = models.IntegerField(default=0)
+    crit_chance = models.FloatField(default=0)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

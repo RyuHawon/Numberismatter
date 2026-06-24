@@ -14,4 +14,6 @@ urlpatterns = [
     path("battle/skill/", views.choose_skill, name="choose_skill"),
     path("run/return/", views.return_run, name="return_run"),
     path("battle/challenge/", views.challenge_next_act, name="challenge_next_act"),
+    path("shop/", views.shop, name="shop"),
+    path("shop/buy/", views.buy_upgrade, name="buy_upgrade"),
 ]

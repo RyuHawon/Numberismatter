@@ -1,10 +1,8 @@
-from unittest.mock import patch
-
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
-from game.models import Enemy
+from game.models import Enemy, Skill
 
 User = get_user_model()
 
@@ -391,61 +389,42 @@ class BattleTurnTest(TestCase):
     # ── 크리티컬 (공격 주사위에만 적용) ──
 
     def test_critical_doubles_attack(self):
-        # 크리티컬 발동 시 공격 데미지가 2배가 된다 (난수를 0으로 고정해 무조건 발동)
-        self._setup_battle(
-            my_dice={"attack": 5, "defense": 0, "heal": 0},
-            enemy_hp=100,
-            skills={"critical": 2},
-        )
-        with patch("game.views.random.random", return_value=0.0):
-            self.client.post(self.action_url, {"choice": "attack"})
+        # 크리 확률 100%(crit_chance=1.0)면 공격 데미지가 2배가 된다
+        self._setup_battle(my_dice={"attack": 5, "defense": 0, "heal": 0}, enemy_hp=100)
+        self.user.character.crit_chance = 1.0  # random.random() < 1.0 은 항상 참 → 무조건 발동
+        self.user.character.save()
+        self.client.post(self.action_url, {"choice": "attack"})
         run = self.client.session["run"]
         self.assertTrue(run["last_result"]["is_crit"])
-        self.assertEqual(run["last_result"]["damage_dealt"], 10)  # 5 * 2
+        self.assertEqual(run["last_result"]["damage_dealt"], 10)  # 5 × 2
         self.assertEqual(run["enemy"]["hp"], 90)  # 100 - 10
 
-    def test_no_critical_when_roll_misses(self):
-        # 난수가 확률보다 크면 크리티컬이 발동하지 않는다
-        self._setup_battle(
-            my_dice={"attack": 5, "defense": 0, "heal": 0},
-            enemy_hp=100,
-            skills={"critical": 2},
-        )
-        with patch("game.views.random.random", return_value=0.99):
-            self.client.post(self.action_url, {"choice": "attack"})
+    def test_no_critical_when_chance_zero(self):
+        # 크리 확률 0(기본 캐릭터)이면 발동하지 않는다
+        self._setup_battle(my_dice={"attack": 5, "defense": 0, "heal": 0}, enemy_hp=100)
+        self.client.post(self.action_url, {"choice": "attack"})
         run = self.client.session["run"]
         self.assertFalse(run["last_result"]["is_crit"])
         self.assertEqual(run["last_result"]["damage_dealt"], 5)
         self.assertEqual(run["enemy"]["hp"], 95)
 
-    def test_no_critical_without_skill(self):
-        # 크리티컬 스킬이 없으면 난수와 무관하게 발동하지 않는다
-        self._setup_battle(
-            my_dice={"attack": 5, "defense": 0, "heal": 0},
-            enemy_hp=100,
-            skills={},
-        )
-        with patch("game.views.random.random", return_value=0.0):
-            self.client.post(self.action_url, {"choice": "attack"})
-        run = self.client.session["run"]
-        self.assertFalse(run["last_result"]["is_crit"])
-        self.assertEqual(run["last_result"]["damage_dealt"], 5)
-
     # ── 승리 후 스킬 선택 ──
 
     def test_won_screen_shows_skill_options(self):
         # 승리 화면에 스킬 선택지가 렌더링된다
+        Skill.objects.create(code="testskill", name="테스트스킬", description="", max_level=3, effect_per_level=0.1)
         self._setup_battle(phase="won")
         response = self.client.get(self.battle_url)
-        self.assertContains(response, "크리티컬")
+        self.assertContains(response, "테스트스킬")
         self.assertContains(response, "건너뛰기")
 
     def test_choose_skill_levels_up_and_advances(self):
         # 스킬을 고르면 레벨이 오르고 다음 스테이지로 진행한다
+        Skill.objects.create(code="testskill", name="테스트스킬", description="", max_level=3, effect_per_level=0.1)
         self._setup_battle(phase="won", current_stage=1)
-        self.client.post(reverse("game:choose_skill"), {"skill": "critical"})
+        self.client.post(reverse("game:choose_skill"), {"skill": "testskill"})
         run = self.client.session["run"]
-        self.assertEqual(run["skills"]["critical"], 1)
+        self.assertEqual(run["skills"]["testskill"], 1)
         self.assertEqual(run["current_stage"], 2)
         self.assertNotIn("enemy", run)
         self.assertEqual(run["phase"], "roll")
@@ -461,12 +440,13 @@ class BattleTurnTest(TestCase):
 
     def test_choose_skill_respects_max_level(self):
         # 만렙 스킬은 더 이상 레벨업되지 않는다
+        Skill.objects.create(code="testskill", name="테스트스킬", description="", max_level=3, effect_per_level=0.1)
         self._setup_battle(phase="won")
         session = self.client.session
-        session["run"]["skills"] = {"critical": 3}  # max_level
+        session["run"]["skills"] = {"testskill": 3}  # max_level
         session.save()
-        self.client.post(reverse("game:choose_skill"), {"skill": "critical"})
-        self.assertEqual(self.client.session["run"]["skills"]["critical"], 3)
+        self.client.post(reverse("game:choose_skill"), {"skill": "testskill"})
+        self.assertEqual(self.client.session["run"]["skills"]["testskill"], 3)
 
     def test_choose_skill_ignored_when_not_won(self):
         # won 상태가 아니면 스킬 선택/진행 요청은 무시된다
