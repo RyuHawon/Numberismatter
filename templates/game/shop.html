@@ -18,7 +18,11 @@
         {% if item.maxed %}
         <span style="color:var(--text-dim); font-size:0.85rem; font-weight:700;">MAX</span>
         {% else %}
-        <button class="btn btn-gold" disabled>🪙 {{ item.cost }}</button>
+        <form method="post" action="{% url 'game:buy_upgrade' %}">
+            {% csrf_token %}
+            <input type="hidden" name="upgrade_id" value="{{ item.id }}">
+            <button type="submit" class="btn btn-gold" {% if not item.affordable %}disabled{% endif %}>🪙 {{ item.cost }}</button>
+        </form>
         {% endif %}
     </div>
     {% endfor %}
