@@ -179,12 +179,9 @@ def battle_action(request):
     if choice == "attack":
         attack_value = value
 
-        crit_level = run["skills"].get("critical", 0)
-        if crit_level > 0:
-            crit_skill = Skill.objects.filter(code="critical").first()
-            if crit_skill and random.random() < crit_level * crit_skill.effect_per_level:
-                attack_value *= 2
-                is_crit = True
+        if random.random() < request.user.character.crit_chance:
+            attack_value *= 2
+            is_crit = True
 
         after_armor = max(attack_value - enemy["armor"], 0)
         enemy["armor"] = max(enemy["armor"] - attack_value, 0)
