@@ -220,7 +220,12 @@
         🪙 누적 골드 {{ run.pending_gold }} G
     </p>
     <p style="color:var(--text-dim); font-size:0.85rem; margin-bottom:26px;">
-        {% if has_next_act %}귀환하면 골드를 영구 보관합니다. 도전 시 HP를 회복하고 다음 Act로 진행합니다.{% else %}귀환하여 모든 골드를 영구 보관하세요.{% endif %}
+        {% if has_next_act %}
+            귀환하면 골드는 영구 보관되지만, 다음 런은 Act 1부터 다시 시작합니다.<br>
+            도전하면 HP를 회복하고 다음 Act로 진행합니다.
+        {% else %}
+            귀환하여 모든 골드를 영구 보관하세요.
+        {% endif %}
     </p>
 
     <div class="btn-row" style="justify-content:center;">
