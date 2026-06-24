@@ -49,6 +49,7 @@ def start_run(request):
         "max_hp": character.max_hp,
         "pending_gold": 0,
         "skills": {},
+        "skill_uses": {},
     }
     return redirect("game:battle")
 
@@ -58,6 +59,13 @@ def start_run(request):
 def abandon_run(request):
     request.session.pop("run", None)
     return redirect("game:home")
+
+
+def roll_player_dice(character):
+    return {
+        kind: random.randint(character.dice_min, character.dice_max)
+        for kind in DIE_KINDS
+    }
 
 
 def create_enemy_intent(enemy):
@@ -149,7 +157,7 @@ def battle_roll(request):
         return _battle_response(request, run)
 
     character = request.user.character
-    run["my_dice"] = {kind: random.randint(character.dice_min, character.dice_max) for kind in DIE_KINDS}
+    run["my_dice"] = roll_player_dice(character)
     run["phase"] = "action"
     request.session.modified = True
     return _battle_response(request, run)
