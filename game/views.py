@@ -62,10 +62,7 @@ def abandon_run(request):
 
 
 def roll_player_dice(character):
-    return {
-        kind: random.randint(character.dice_min, character.dice_max)
-        for kind in DIE_KINDS
-    }
+    return {kind: random.randint(character.dice_min, character.dice_max) for kind in DIE_KINDS}
 
 
 def create_enemy_intent(enemy):
@@ -170,13 +167,13 @@ def battle_reroll(request):
     run = request.session.get("run")
     if not run or run.get("phase") != "action":
         return _battle_response(request, run)
-    
+
     uses_left = run["skill_uses"].get("reroll", 0)
     if uses_left <= 0:
         return _battle_response(request, run)
-    
+
     run["my_dice"] = roll_player_dice(request.user.character)
-    run["skill_uses"]["reroll"] = uses_left -1
+    run["skill_uses"]["reroll"] = uses_left - 1
     request.session.modified = True
     return _battle_response(request, run)
 
