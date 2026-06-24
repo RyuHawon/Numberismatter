@@ -2,18 +2,19 @@
 __pycache__/
 *.py[cod]
 *.egg-info/
+.coverage
 
 # Virtual environment
 .venv/
+
+# Database
+db.sqlite3
 
 # IDE
 .idea/
 
 # Environment variables
 .env
-
-# uv
-uv.lock
 
 # Claude Code
 .claude/
@@ -23,3 +24,6 @@ documents/
 
 # OS
 .DS_Store
+
+# Django collectstatic 결과물
+/staticfiles/

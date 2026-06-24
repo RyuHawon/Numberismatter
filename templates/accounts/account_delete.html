@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>정말 탈퇴하시겠습니까?</h1>
+<p>탈퇴하면 계정이 비활성화됩니다.</p>
+<form method="post">
+    {% csrf_token %}
+    <button type="submit">탈퇴하기</button>
+</form>
+<a href="{% url 'game:home' %}">취소</a>
+{% endblock content %}
