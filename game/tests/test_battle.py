@@ -379,12 +379,10 @@ class BattleTurnTest(TestCase):
         self._setup_battle(my_dice={"attack": 3, "defense": 0, "heal": 0}, enemy_hp=20)
         response = self.client.post(self.action_url, {"choice": "attack"})
         self.assertEqual(response.status_code, 302)
-    
+
     def test_htmx_choose_skill_spawns_next_enemy(self):
         self._setup_battle(phase="won", current_stage=1)
-        response = self.client.post(
-            reverse("game:choose_skill"), {"skill": "skip"}, HTTP_HX_REQUEST="true"
-        )
+        response = self.client.post(reverse("game:choose_skill"), {"skill": "skip"}, HTTP_HX_REQUEST="true")
         self.assertEqual(response.status_code, 200)
         run = self.client.session["run"]
         self.assertEqual(run["current_stage"], 2)
